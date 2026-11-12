@@ -1,6 +1,6 @@
-
+import '../../widgets/stock_movement_widget.dart';
 import 'package:flutter/material.dart';
-
+import '../../widgets/daily_sales_chart.dart';
 import '../../services/auth_service.dart';
 import '../../services/dashboard_service.dart';
 
@@ -311,6 +311,7 @@ class _AdminDashboardState extends State<AdminDashboard> {
                         ),
 
                         const SizedBox(height: 20),
+                        
 
                         FutureBuilder<List<Map<String, dynamic>>>(
                           future: _recentOrdersFuture,
@@ -456,6 +457,13 @@ class _AdminDashboardState extends State<AdminDashboard> {
                       ],
                     ),
                   ),
+                  const SizedBox(height: 20),
+
+                  const DailySalesChart(),
+                  
+                  const SizedBox(height: 20),
+
+                  const StockMovementWidget(),
                 ],
               ),
             );
