@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import '../../widgets/daily_sales_chart.dart';
 import '../../services/auth_service.dart';
 import '../../services/dashboard_service.dart';
+import '../products/product_management_screen.dart';
 
 class AdminDashboard extends StatefulWidget {
   const AdminDashboard({super.key});
@@ -69,6 +70,21 @@ class _AdminDashboardState extends State<AdminDashboard> {
           ],
         ),
         actions: [
+          IconButton(
+  tooltip: 'Product Management',
+  icon: const Icon(
+    Icons.inventory_2_outlined,
+    color: Color(0xFF00D68F),
+  ),
+  onPressed: () {
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (context) => const ProductManagementScreen(),
+      ),
+    );
+  },
+),
           IconButton(
             tooltip: 'Refresh dashboard',
             onPressed: _refreshDashboard,
