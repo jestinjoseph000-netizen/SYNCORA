@@ -4,7 +4,9 @@ import '../../widgets/daily_sales_chart.dart';
 import '../../services/auth_service.dart';
 import '../../services/dashboard_service.dart';
 import '../products/product_management_screen.dart';
-
+import '../inventory/inventory_management_screen.dart';
+import '../customers/customer_management_screen.dart';
+import '../orders/order_management_screen.dart';
 class AdminDashboard extends StatefulWidget {
   const AdminDashboard({super.key});
 
@@ -85,12 +87,56 @@ class _AdminDashboardState extends State<AdminDashboard> {
     );
   },
 ),
+IconButton(
+  tooltip: 'Inventory Management',
+  icon: const Icon(Icons.inventory_2_outlined),
+   color: Color(0xFF00D68F),
+  onPressed: () {
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (context) =>
+            const InventoryManagementScreen(),
+      ),
+    );
+  },
+),
+IconButton(
+  tooltip: 'Customer Management',
+  icon: const Icon(Icons.people_outline),
+  color: Color(0xFF00D68F),
+  onPressed: () {
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (context) =>
+            const CustomerManagementScreen(),
+      ),
+    );
+  },
+),
+IconButton(
+  tooltip: 'Order Management',
+  icon: const Icon(
+    Icons.shopping_cart_outlined,
+    color: Color(0xFF00D68F),
+  ),
+  onPressed: () {
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (context) =>
+            const OrderManagementScreen(),
+      ),
+    );
+  },
+),
           IconButton(
             tooltip: 'Refresh dashboard',
             onPressed: _refreshDashboard,
             icon: const Icon(
               Icons.refresh_rounded,
-              color: Colors.white,
+               color: Color(0xFF00D68F),
             ),
           ),
           IconButton(
@@ -100,7 +146,7 @@ class _AdminDashboardState extends State<AdminDashboard> {
             },
             icon: const Icon(
               Icons.logout_rounded,
-              color: Colors.white,
+               color: Color(0xFF00D68F),
             ),
           ),
           const SizedBox(width: 10),

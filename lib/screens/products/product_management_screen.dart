@@ -2,6 +2,7 @@
 import 'package:flutter/material.dart';
 import '../../services/product_service.dart';
 import 'add_product_screen.dart';
+import 'edit_product_screen.dart';
 class ProductManagementScreen extends StatefulWidget {
   const ProductManagementScreen({super.key});
 
@@ -37,6 +38,20 @@ class _ProductManagementScreenState
       _loadProducts(search: _searchController.text);
     });
   }
+
+Future<void> _editProduct(Map<String, dynamic> product) async {
+  final result = await Navigator.push(
+    context,
+    MaterialPageRoute(
+      builder: (context) => EditProductScreen(product: product),
+    ),
+  );
+
+  if (result == true && mounted) {
+    _refreshProducts();
+  }
+}
+
 
   Future<void> _deleteProduct(Map<String, dynamic> product) async {
     final confirmed = await showDialog<bool>(
@@ -307,10 +322,10 @@ IconButton(
                               final product = products[index];
 
                               return _ProductCard(
-                                product: product,
-                                onDelete: () =>
-                                    _deleteProduct(product),
-                              );
+                                     product: product,
+                                       onDelete: () => _deleteProduct(product),
+                                       onEdit: () => _editProduct(product),
+                                                  );
                             },
                           );
                         },
@@ -330,10 +345,12 @@ IconButton(
 class _ProductCard extends StatelessWidget {
   final Map<String, dynamic> product;
   final VoidCallback onDelete;
+  final VoidCallback onEdit;
 
   const _ProductCard({
     required this.product,
     required this.onDelete,
+    required this.onEdit,
   });
 
   @override
@@ -378,6 +395,15 @@ class _ProductCard extends StatelessWidget {
                     fontSize: 15,
                   ),
                 ),
+              ),
+              IconButton(
+                onPressed: onEdit,
+                icon: const Icon(
+                  Icons.edit_outlined,
+                  color: Color(0xFF00D68F),
+                  size: 20,
+                ),
+                tooltip: 'Edit product',
               ),
               IconButton(
                 onPressed: onDelete,
