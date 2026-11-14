@@ -4,6 +4,8 @@ import '../dashboard/customer_dashboard.dart';
 import '../dashboard/admin_dashboard.dart';
 import '../../services/auth_service.dart';
 import '../landing/landing_page.dart';
+import '../dashboard/manager_dashboard.dart';
+import '../dashboard/staff_dashboard.dart';
 
 
 class AuthGate extends StatelessWidget {
@@ -67,14 +69,10 @@ class RoleRedirect extends StatelessWidget {
           return const AdminDashboard();
 
           case 'manager':
-            return const RolePlaceholder(
-              role: 'Manager Dashboard',
-            );
+            return const ManagerDashboard();
 
           case 'staff':
-            return const RolePlaceholder(
-              role: 'Staff Dashboard',
-            );
+            return const StaffDashboard();
 
           case 'customer':
              return const CustomerDashboard();

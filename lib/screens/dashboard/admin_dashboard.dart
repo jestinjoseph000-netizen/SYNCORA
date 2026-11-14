@@ -7,6 +7,7 @@ import '../products/product_management_screen.dart';
 import '../inventory/inventory_management_screen.dart';
 import '../customers/customer_management_screen.dart';
 import '../orders/order_management_screen.dart';
+import '../employees/employee_management_screen.dart';
 class AdminDashboard extends StatefulWidget {
   const AdminDashboard({super.key});
 
@@ -72,6 +73,21 @@ class _AdminDashboardState extends State<AdminDashboard> {
           ],
         ),
         actions: [
+          IconButton(
+  tooltip: 'Employee Management',
+  icon: const Icon(
+    Icons.badge_outlined,
+    color: Color(0xFF00D68F),
+  ),
+  onPressed: () {
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (_) => const EmployeeManagementScreen(),
+      ),
+    );
+  },
+),
           IconButton(
   tooltip: 'Product Management',
   icon: const Icon(

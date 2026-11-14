@@ -1,7 +1,9 @@
-
 import 'dart:async';
+
 import 'package:flutter/material.dart';
+
 import '../../services/customer_service.dart';
+import '../../services/auth_service.dart';
 
 class CustomerManagementScreen extends StatefulWidget {
   const CustomerManagementScreen({super.key});
@@ -11,12 +13,10 @@ class CustomerManagementScreen extends StatefulWidget {
       _CustomerManagementScreenState();
 }
 
-class _CustomerManagementScreenState
-    extends State<CustomerManagementScreen> {
+class _CustomerManagementScreenState extends State<CustomerManagementScreen> {
   final CustomerService _service = CustomerService();
-  final TextEditingController _searchController =
-      TextEditingController();
-
+  final TextEditingController _searchController = TextEditingController();
+  bool _canDeleteCustomers = false;
   List<Map<String, dynamic>> _customers = [];
   bool _isLoading = true;
   String? _error;
@@ -30,6 +30,21 @@ class _CustomerManagementScreenState
   void initState() {
     super.initState();
     _loadCustomers();
+    _loadPermissions();
+  }
+
+  Future<void> _loadPermissions() async {
+    try {
+      final role = await AuthService().getCurrentUserRole();
+
+      if (!mounted) return;
+
+      setState(() {
+        _canDeleteCustomers = role == 'admin';
+      });
+    } catch (e) {
+      debugPrint('Permission loading error: $e');
+    }
   }
 
   @override
@@ -46,9 +61,7 @@ class _CustomerManagementScreenState
     });
 
     try {
-      final customers = await _service.getCustomers(
-        searchQuery: search,
-      );
+      final customers = await _service.getCustomers(searchQuery: search);
 
       if (!mounted) return;
 
@@ -78,9 +91,7 @@ class _CustomerManagementScreenState
   Future<void> _addCustomer() async {
     final result = await Navigator.push(
       context,
-      MaterialPageRoute(
-        builder: (context) => const CustomerFormScreen(),
-      ),
+      MaterialPageRoute(builder: (context) => const CustomerFormScreen()),
     );
 
     if (result == true && mounted) {
@@ -88,15 +99,11 @@ class _CustomerManagementScreenState
     }
   }
 
-  Future<void> _editCustomer(
-    Map<String, dynamic> customer,
-  ) async {
+  Future<void> _editCustomer(Map<String, dynamic> customer) async {
     final result = await Navigator.push(
       context,
       MaterialPageRoute(
-        builder: (context) => CustomerFormScreen(
-          customer: customer,
-        ),
+        builder: (context) => CustomerFormScreen(customer: customer),
       ),
     );
 
@@ -105,9 +112,8 @@ class _CustomerManagementScreenState
     }
   }
 
-  Future<void> _deleteCustomer(
-    Map<String, dynamic> customer,
-  ) async {
+  Future<void> _deleteCustomer(Map<String, dynamic> customer) async {
+    if (!_canDeleteCustomers) return;
     final confirmed = await showDialog<bool>(
       context: context,
       builder: (context) => AlertDialog(
@@ -145,9 +151,7 @@ class _CustomerManagementScreenState
       if (!mounted) return;
 
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Customer deleted successfully.'),
-        ),
+        const SnackBar(content: Text('Customer deleted successfully.')),
       );
 
       _loadCustomers(search: _searchController.text);
@@ -163,9 +167,7 @@ class _CustomerManagementScreenState
     }
   }
 
-  Widget _buildCustomerCard(
-    Map<String, dynamic> customer,
-  ) {
+  Widget _buildCustomerCard(Map<String, dynamic> customer) {
     final name = customer['name'] ?? 'Unnamed Customer';
     final email = customer['email'] ?? 'No email provided';
     final phone = customer['phone'] ?? 'No phone provided';
@@ -235,14 +237,15 @@ class _CustomerManagementScreenState
                 ),
               ),
               const SizedBox(width: 10),
-              IconButton(
-                tooltip: 'Delete customer',
-                onPressed: () => _deleteCustomer(customer),
-                icon: const Icon(
-                  Icons.delete_outline,
-                  color: Colors.redAccent,
+              if (_canDeleteCustomers)
+                IconButton(
+                  tooltip: 'Delete customer',
+                  onPressed: () => _deleteCustomer(customer),
+                  icon: const Icon(
+                    Icons.delete_outline,
+                    color: Colors.redAccent,
+                  ),
                 ),
-              ),
             ],
           ),
         ],
@@ -260,10 +263,7 @@ class _CustomerManagementScreenState
             value,
             maxLines: 2,
             overflow: TextOverflow.ellipsis,
-            style: const TextStyle(
-              color: Colors.white70,
-              fontSize: 12,
-            ),
+            style: const TextStyle(color: Colors.white70, fontSize: 12),
           ),
         ),
       ],
@@ -284,9 +284,7 @@ class _CustomerManagementScreenState
         actions: [
           IconButton(
             tooltip: 'Refresh',
-            onPressed: () => _loadCustomers(
-              search: _searchController.text,
-            ),
+            onPressed: () => _loadCustomers(search: _searchController.text),
             icon: const Icon(Icons.refresh),
             color: Color(0xFF00D68F),
           ),
@@ -313,10 +311,7 @@ class _CustomerManagementScreenState
               decoration: InputDecoration(
                 hintText: 'Search customers by name, email or phone...',
                 hintStyle: const TextStyle(color: Colors.white38),
-                prefixIcon: const Icon(
-                  Icons.search,
-                  color: _accent,
-                ),
+                prefixIcon: const Icon(Icons.search, color: _accent),
                 filled: true,
                 fillColor: _card,
                 border: OutlineInputBorder(
@@ -328,83 +323,68 @@ class _CustomerManagementScreenState
           ),
           Expanded(
             child: _isLoading
-                ? const Center(
-                    child: CircularProgressIndicator(
-                      color: _accent,
+                ? const Center(child: CircularProgressIndicator(color: _accent))
+                : _error != null
+                ? Center(
+                    child: Padding(
+                      padding: const EdgeInsets.all(24),
+                      child: Column(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Text(
+                            'Unable to load customers.\n$_error',
+                            textAlign: TextAlign.center,
+                            style: const TextStyle(color: Colors.white70),
+                          ),
+                          const SizedBox(height: 16),
+                          ElevatedButton(
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: _accent,
+                              foregroundColor: _background,
+                            ),
+                            onPressed: () =>
+                                _loadCustomers(search: _searchController.text),
+                            child: const Text('Retry'),
+                          ),
+                        ],
+                      ),
                     ),
                   )
-                : _error != null
-                    ? Center(
-                        child: Padding(
-                          padding: const EdgeInsets.all(24),
-                          child: Column(
-                            mainAxisSize: MainAxisSize.min,
-                            children: [
-                              Text(
-                                'Unable to load customers.\n$_error',
-                                textAlign: TextAlign.center,
-                                style: const TextStyle(
-                                  color: Colors.white70,
-                                ),
-                              ),
-                              const SizedBox(height: 16),
-                              ElevatedButton(
-                                style: ElevatedButton.styleFrom(
-                                  backgroundColor: _accent,
-                                  foregroundColor: _background,
-                                ),
-                                onPressed: () => _loadCustomers(
-                                  search: _searchController.text,
-                                ),
-                                child: const Text('Retry'),
-                              ),
-                            ],
-                          ),
-                        ),
-                      )
-                    : _customers.isEmpty
-                        ? const Center(
-                            child: Text(
-                              'No customers found.',
-                              style: TextStyle(
-                                color: Colors.white54,
-                              ),
-                            ),
-                          )
-                        : RefreshIndicator(
-                            onRefresh: () => _loadCustomers(
-                              search: _searchController.text,
-                            ),
-                            child: LayoutBuilder(
-                              builder: (context, constraints) {
-                                final columns =
-                                    constraints.maxWidth > 950
-                                        ? 3
-                                        : constraints.maxWidth > 600
-                                            ? 2
-                                            : 1;
+                : _customers.isEmpty
+                ? const Center(
+                    child: Text(
+                      'No customers found.',
+                      style: TextStyle(color: Colors.white54),
+                    ),
+                  )
+                : RefreshIndicator(
+                    onRefresh: () =>
+                        _loadCustomers(search: _searchController.text),
+                    child: LayoutBuilder(
+                      builder: (context, constraints) {
+                        final columns = constraints.maxWidth > 950
+                            ? 3
+                            : constraints.maxWidth > 600
+                            ? 2
+                            : 1;
 
-                                return GridView.builder(
-                                  padding: const EdgeInsets.fromLTRB(
-                                    20, 10, 20, 90,
-                                  ),
-                                  itemCount: _customers.length,
-                                  gridDelegate:
-                                      SliverGridDelegateWithFixedCrossAxisCount(
-                                    crossAxisCount: columns,
-                                    crossAxisSpacing: 14,
-                                    mainAxisSpacing: 14,
-                                    mainAxisExtent: 260,
-                                  ),
-                                  itemBuilder: (context, index) {
-                                    return _buildCustomerCard(
-                                      _customers[index],
-                                    );
-                                  },
-                                );
-                              },
-                            ),
-                          ),
+                        return GridView.builder(
+                          padding: const EdgeInsets.fromLTRB(20, 10, 20, 90),
+                          itemCount: _customers.length,
+                          gridDelegate:
+                              SliverGridDelegateWithFixedCrossAxisCount(
+                                crossAxisCount: columns,
+                                crossAxisSpacing: 14,
+                                mainAxisSpacing: 14,
+                                mainAxisExtent: 260,
+                              ),
+                          itemBuilder: (context, index) {
+                            return _buildCustomerCard(_customers[index]);
+                          },
+                        );
+                      },
+                    ),
+                  ),
           ),
         ],
       ),
@@ -417,18 +397,13 @@ class _CustomerManagementScreenState
 class CustomerFormScreen extends StatefulWidget {
   final Map<String, dynamic>? customer;
 
-  const CustomerFormScreen({
-    super.key,
-    this.customer,
-  });
+  const CustomerFormScreen({super.key, this.customer});
 
   @override
-  State<CustomerFormScreen> createState() =>
-      _CustomerFormScreenState();
+  State<CustomerFormScreen> createState() => _CustomerFormScreenState();
 }
 
-class _CustomerFormScreenState
-    extends State<CustomerFormScreen> {
+class _CustomerFormScreenState extends State<CustomerFormScreen> {
   final CustomerService _service = CustomerService();
   final _formKey = GlobalKey<FormState>();
 
@@ -619,8 +594,7 @@ class _CustomerFormScreenState
                       style: ElevatedButton.styleFrom(
                         backgroundColor: _accent,
                         foregroundColor: _background,
-                        disabledBackgroundColor:
-                            _accent.withValues(alpha: 0.5),
+                        disabledBackgroundColor: _accent.withValues(alpha: 0.5),
                         shape: RoundedRectangleBorder(
                           borderRadius: BorderRadius.circular(12),
                         ),
@@ -635,9 +609,7 @@ class _CustomerFormScreenState
                               ),
                             )
                           : Text(
-                              _isEditing
-                                  ? 'Update Customer'
-                                  : 'Save Customer',
+                              _isEditing ? 'Update Customer' : 'Save Customer',
                               style: const TextStyle(
                                 fontWeight: FontWeight.bold,
                               ),
