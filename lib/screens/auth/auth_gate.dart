@@ -1,8 +1,10 @@
 
 import 'package:flutter/material.dart';
+import '../dashboard/customer_dashboard.dart';
 import '../dashboard/admin_dashboard.dart';
 import '../../services/auth_service.dart';
 import '../landing/landing_page.dart';
+
 
 class AuthGate extends StatelessWidget {
   const AuthGate({super.key});
@@ -75,9 +77,7 @@ class RoleRedirect extends StatelessWidget {
             );
 
           case 'customer':
-            return const RolePlaceholder(
-              role: 'Customer Dashboard',
-            );
+             return const CustomerDashboard();
 
           default:
             return const Scaffold(

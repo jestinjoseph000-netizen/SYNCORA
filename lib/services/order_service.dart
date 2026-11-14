@@ -1,4 +1,3 @@
-
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 class OrderService {
@@ -14,10 +13,44 @@ class OrderService {
     return List<Map<String, dynamic>>.from(response);
   }
 
+  // Get orders belonging to the currently logged-in customer
+  Future<List<Map<String, dynamic>>> getCustomerOrders() async {
+    final user = _supabase.auth.currentUser;
+
+    if (user == null) {
+      throw Exception('Please log in to view your orders.');
+    }
+
+    // Find the customer's database ID
+    final customer = await _supabase
+        .from('customers')
+        .select('id')
+        .eq('auth_user_id', user.id)
+        .single();
+
+    final customerId = customer['id'].toString();
+
+    // Fetch this customer's orders and their items
+    final response = await _supabase
+        .from('orders')
+        .select('''
+          *,
+          order_items(
+            id,
+            quantity,
+            unit_price,
+            line_total,
+            products(name, sku)
+          )
+        ''')
+        .eq('customer_id', customerId)
+        .order('created_at', ascending: false);
+
+    return List<Map<String, dynamic>>.from(response);
+  }
+
   // Fetch details of a particular order
-  Future<Map<String, dynamic>> getOrderDetails(
-    String orderId,
-  ) async {
+  Future<Map<String, dynamic>> getOrderDetails(String orderId) async {
     final response = await _supabase
         .from('orders')
         .select('''
@@ -43,8 +76,7 @@ class OrderService {
     required List<String> productIds,
     required List<int> quantities,
   }) async {
-    if (productIds.isEmpty ||
-        productIds.length != quantities.length) {
+    if (productIds.isEmpty || productIds.length != quantities.length) {
       throw Exception('Invalid order items.');
     }
 
@@ -67,10 +99,7 @@ class OrderService {
   }) async {
     await _supabase.rpc(
       'update_order_status',
-      params: {
-        'p_order_id': orderId,
-        'p_new_status': newStatus,
-      },
+      params: {'p_order_id': orderId, 'p_new_status': newStatus},
     );
   }
 }
