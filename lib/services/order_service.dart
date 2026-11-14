@@ -59,4 +59,18 @@ class OrderService {
 
     return result.toString();
   }
+
+  // Update order status through the secure database function
+  Future<void> updateOrderStatus({
+    required String orderId,
+    required String newStatus,
+  }) async {
+    await _supabase.rpc(
+      'update_order_status',
+      params: {
+        'p_order_id': orderId,
+        'p_new_status': newStatus,
+      },
+    );
+  }
 }

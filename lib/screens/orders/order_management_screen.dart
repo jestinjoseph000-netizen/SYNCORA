@@ -1,4 +1,3 @@
-
 import 'package:flutter/material.dart';
 
 import '../../services/order_service.dart';
@@ -9,15 +8,12 @@ class OrderManagementScreen extends StatefulWidget {
   const OrderManagementScreen({super.key});
 
   @override
-  State<OrderManagementScreen> createState() =>
-      _OrderManagementScreenState();
+  State<OrderManagementScreen> createState() => _OrderManagementScreenState();
 }
 
-class _OrderManagementScreenState
-    extends State<OrderManagementScreen> {
+class _OrderManagementScreenState extends State<OrderManagementScreen> {
   final OrderService _orderService = OrderService();
-  final TextEditingController _searchController =
-      TextEditingController();
+  final TextEditingController _searchController = TextEditingController();
 
   List<Map<String, dynamic>> _orders = [];
   bool _isLoading = true;
@@ -31,6 +27,80 @@ class _OrderManagementScreenState
   void initState() {
     super.initState();
     _loadOrders();
+  }
+
+  Future<void> _changeOrderStatus(String orderId, String newStatus) async {
+    // Ask for confirmation before cancelling an order.
+    if (newStatus == 'cancelled') {
+      final confirmed = await showDialog<bool>(
+        context: context,
+        builder: (dialogContext) => AlertDialog(
+          backgroundColor: _card,
+          title: const Text(
+            'Cancel Order?',
+            style: TextStyle(color: Colors.white),
+          ),
+          content: const Text(
+            'This will cancel the order and restore its products to inventory. Continue?',
+            style: TextStyle(color: Colors.white70),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(dialogContext, false),
+              child: const Text(
+                'Go Back',
+                style: TextStyle(color: Colors.white54),
+              ),
+            ),
+            ElevatedButton(
+              onPressed: () => Navigator.pop(dialogContext, true),
+              style: ElevatedButton.styleFrom(
+                backgroundColor: Colors.redAccent,
+                foregroundColor: Colors.white,
+              ),
+              child: const Text('Cancel Order'),
+            ),
+          ],
+        ),
+      );
+
+      if (confirmed != true || !mounted) return;
+    }
+
+    try {
+      await _orderService.updateOrderStatus(
+        orderId: orderId,
+        newStatus: newStatus,
+      );
+
+      if (!mounted) return;
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Order status updated to ${newStatus.toUpperCase()}.'),
+        ),
+      );
+
+      await _loadOrders();
+    } catch (e) {
+      if (!mounted) return;
+
+      ScaffoldMessenger.of(context)
+          .showSnackBar(SnackBar(content: Text('Unable to update order: $e')));
+    }
+  }
+
+  List<String> _availableStatusActions(String status) {
+    switch (status.toLowerCase()) {
+      case 'pending':
+        return ['confirmed', 'cancelled'];
+      case 'confirmed':
+        return ['processing', 'cancelled'];
+      case 'processing':
+        return ['completed', 'cancelled'];
+      default:
+        return [];
+    }
   }
 
   @override
@@ -70,25 +140,23 @@ class _OrderManagementScreenState
     if (query.isEmpty) return _orders;
 
     return _orders.where((order) {
-      final orderNumber =
-          (order['order_number'] ?? '').toString().toLowerCase();
+      final orderNumber = (order['order_number'] ?? '')
+          .toString()
+          .toLowerCase();
 
       final customer = order['customers'];
       final customerName = customer is Map
           ? (customer['name'] ?? '').toString().toLowerCase()
           : '';
 
-      return orderNumber.contains(query) ||
-          customerName.contains(query);
+      return orderNumber.contains(query) || customerName.contains(query);
     }).toList();
   }
 
   Future<void> _openCreateOrder() async {
     final result = await Navigator.push(
       context,
-      MaterialPageRoute(
-        builder: (context) => const CreateOrderScreen(),
-      ),
+      MaterialPageRoute(builder: (context) => const CreateOrderScreen()),
     );
 
     if (result == true && mounted) {
@@ -96,9 +164,7 @@ class _OrderManagementScreenState
     }
   }
 
-  Future<void> _showOrderDetails(
-    Map<String, dynamic> order,
-  ) async {
+  Future<void> _showOrderDetails(Map<String, dynamic> order) async {
     try {
       final details = await _orderService.getOrderDetails(
         order['id'].toString(),
@@ -159,14 +225,11 @@ class _OrderManagementScreenState
                           children: [
                             Expanded(
                               child: Column(
-                                crossAxisAlignment:
-                                    CrossAxisAlignment.start,
+                                crossAxisAlignment: CrossAxisAlignment.start,
                                 children: [
                                   Text(
                                     product['name'] ?? 'Product',
-                                    style: const TextStyle(
-                                      color: Colors.white,
-                                    ),
+                                    style: const TextStyle(color: Colors.white),
                                   ),
                                   Text(
                                     '${item['quantity']} × ₹${item['unit_price']}',
@@ -217,10 +280,7 @@ class _OrderManagementScreenState
             actions: [
               TextButton(
                 onPressed: () => Navigator.pop(dialogContext),
-                child: const Text(
-                  'Close',
-                  style: TextStyle(color: _accent),
-                ),
+                child: const Text('Close', style: TextStyle(color: _accent)),
               ),
             ],
           );
@@ -229,9 +289,8 @@ class _OrderManagementScreenState
     } catch (e) {
       if (!mounted) return;
 
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Unable to load order: $e')),
-      );
+      ScaffoldMessenger.of(context)
+          .showSnackBar(SnackBar(content: Text('Unable to load order: $e')));
     }
   }
 
@@ -255,15 +314,13 @@ class _OrderManagementScreenState
     final status = (order['status'] ?? 'pending').toString();
     final color = _statusColor(status);
 
-    final date = DateTime.tryParse(
-      order['created_at']?.toString() ?? '',
-    );
+    final date = DateTime.tryParse(order['created_at']?.toString() ?? '');
 
     final formattedDate = date == null
         ? 'Date unavailable'
         : '${date.day.toString().padLeft(2, '0')}/'
-            '${date.month.toString().padLeft(2, '0')}/'
-            '${date.year}';
+              '${date.month.toString().padLeft(2, '0')}/'
+              '${date.year}';
 
     return InkWell(
       onTap: () => _showOrderDetails(order),
@@ -314,28 +371,65 @@ class _OrderManagementScreenState
                     ),
                   ),
                 ),
+
+                // Order status update menu
+                if (_availableStatusActions(status).isNotEmpty)
+                  PopupMenuButton<String>(
+                    tooltip: 'Update order status',
+                    icon: const Icon(Icons.more_vert, color: _accent),
+                    color: _card,
+                    onSelected: (newStatus) {
+                      _changeOrderStatus(order['id'].toString(), newStatus);
+                    },
+                    itemBuilder: (context) {
+                      return _availableStatusActions(status).map((action) {
+                        final isCancelled = action == 'cancelled';
+
+                        return PopupMenuItem<String>(
+                          value: action,
+                          child: Row(
+                            children: [
+                              Icon(
+                                isCancelled
+                                    ? Icons.cancel_outlined
+                                    : Icons.arrow_forward,
+                                color: isCancelled ? Colors.redAccent : _accent,
+                                size: 18,
+                              ),
+                              const SizedBox(width: 10),
+                              Text(
+                                action[0].toUpperCase() + action.substring(1),
+                                style: TextStyle(
+                                  color: isCancelled
+                                      ? Colors.redAccent
+                                      : Colors.white,
+                                ),
+                              ),
+                            ],
+                          ),
+                        );
+                      }).toList();
+                    },
+                  ),
               ],
             ),
+
             const SizedBox(height: 18),
+
             Text(
               customer['name'] ?? 'Unknown Customer',
-              style: const TextStyle(
-                color: Colors.white70,
-                fontSize: 14,
-              ),
+              style: const TextStyle(color: Colors.white70, fontSize: 14),
             ),
+
             const SizedBox(height: 7),
+
             Text(
               formattedDate,
-              style: const TextStyle(
-                color: Colors.white38,
-                fontSize: 12,
-              ),
+              style: const TextStyle(color: Colors.white38, fontSize: 12),
             ),
-            const Divider(
-              height: 25,
-              color: Colors.white10,
-            ),
+
+            const Divider(height: 25, color: Colors.white10),
+
             Row(
               children: [
                 const Text(
@@ -353,15 +447,14 @@ class _OrderManagementScreenState
                 ),
               ],
             ),
+
             const SizedBox(height: 8),
+
             const Align(
               alignment: Alignment.centerRight,
               child: Text(
                 'View details →',
-                style: TextStyle(
-                  color: _accent,
-                  fontSize: 11,
-                ),
+                style: TextStyle(color: _accent, fontSize: 11),
               ),
             ),
           ],
@@ -387,10 +480,7 @@ class _OrderManagementScreenState
           IconButton(
             tooltip: 'Refresh',
             onPressed: _loadOrders,
-            icon: const Icon(
-              Icons.refresh,
-              color: _accent,
-            ),
+            icon: const Icon(Icons.refresh, color: _accent),
           ),
         ],
       ),
@@ -415,10 +505,7 @@ class _OrderManagementScreenState
               decoration: InputDecoration(
                 hintText: 'Search order number or customer...',
                 hintStyle: const TextStyle(color: Colors.white38),
-                prefixIcon: const Icon(
-                  Icons.search,
-                  color: _accent,
-                ),
+                prefixIcon: const Icon(Icons.search, color: _accent),
                 filled: true,
                 fillColor: _card,
                 border: OutlineInputBorder(
@@ -430,76 +517,67 @@ class _OrderManagementScreenState
           ),
           Expanded(
             child: _isLoading
-                ? const Center(
-                    child: CircularProgressIndicator(color: _accent),
-                  )
+                ? const Center(child: CircularProgressIndicator(color: _accent))
                 : _error != null
-                    ? Center(
-                        child: Padding(
-                          padding: const EdgeInsets.all(24),
-                          child: Column(
-                            mainAxisSize: MainAxisSize.min,
-                            children: [
-                              Text(
-                                'Unable to load orders.\n$_error',
-                                textAlign: TextAlign.center,
-                                style: const TextStyle(
-                                  color: Colors.white70,
-                                ),
-                              ),
-                              const SizedBox(height: 15),
-                              ElevatedButton(
-                                style: ElevatedButton.styleFrom(
-                                  backgroundColor: _accent,
-                                  foregroundColor: _background,
-                                ),
-                                onPressed: _loadOrders,
-                                child: const Text('Retry'),
-                              ),
-                            ],
+                ? Center(
+                    child: Padding(
+                      padding: const EdgeInsets.all(24),
+                      child: Column(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Text(
+                            'Unable to load orders.\n$_error',
+                            textAlign: TextAlign.center,
+                            style: const TextStyle(color: Colors.white70),
                           ),
-                        ),
-                      )
-                    : filteredOrders.isEmpty
-                        ? const Center(
-                            child: Text(
-                              'No orders found.',
-                              style: TextStyle(color: Colors.white54),
+                          const SizedBox(height: 15),
+                          ElevatedButton(
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: _accent,
+                              foregroundColor: _background,
                             ),
-                          )
-                        : RefreshIndicator(
-                            color: _accent,
-                            onRefresh: _loadOrders,
-                            child: LayoutBuilder(
-                              builder: (context, constraints) {
-                                final columns =
-                                    constraints.maxWidth > 950
-                                        ? 3
-                                        : constraints.maxWidth > 600
-                                            ? 2
-                                            : 1;
+                            onPressed: _loadOrders,
+                            child: const Text('Retry'),
+                          ),
+                        ],
+                      ),
+                    ),
+                  )
+                : filteredOrders.isEmpty
+                ? const Center(
+                    child: Text(
+                      'No orders found.',
+                      style: TextStyle(color: Colors.white54),
+                    ),
+                  )
+                : RefreshIndicator(
+                    color: _accent,
+                    onRefresh: _loadOrders,
+                    child: LayoutBuilder(
+                      builder: (context, constraints) {
+                        final columns = constraints.maxWidth > 950
+                            ? 3
+                            : constraints.maxWidth > 600
+                            ? 2
+                            : 1;
 
-                                return GridView.builder(
-                                  padding: const EdgeInsets.fromLTRB(
-                                    20, 0, 20, 90,
-                                  ),
-                                  itemCount: filteredOrders.length,
-                                  gridDelegate:
-                                      SliverGridDelegateWithFixedCrossAxisCount(
-                                    crossAxisCount: columns,
-                                    crossAxisSpacing: 14,
-                                    mainAxisSpacing: 14,
-                                    mainAxisExtent: 210,
-                                  ),
-                                  itemBuilder: (context, index) {
-                                    return _buildOrderCard(
-                                      filteredOrders[index],
-                                    );
-                                  },
-                                );
-                              },
-                            ),
-                          ),
+                        return GridView.builder(
+                          padding: const EdgeInsets.fromLTRB(20, 0, 20, 90),
+                          itemCount: filteredOrders.length,
+                          gridDelegate:
+                              SliverGridDelegateWithFixedCrossAxisCount(
+                                crossAxisCount: columns,
+                                crossAxisSpacing: 14,
+                                mainAxisSpacing: 14,
+                                mainAxisExtent: 235,
+                              ),
+                          itemBuilder: (context, index) {
+                            return _buildOrderCard(filteredOrders[index]);
+                          },
+                        );
+                      },
+                    ),
+                  ),
           ),
         ],
       ),
@@ -513,8 +591,7 @@ class CreateOrderScreen extends StatefulWidget {
   const CreateOrderScreen({super.key});
 
   @override
-  State<CreateOrderScreen> createState() =>
-      _CreateOrderScreenState();
+  State<CreateOrderScreen> createState() => _CreateOrderScreenState();
 }
 
 class _CreateOrderScreenState extends State<CreateOrderScreen> {
@@ -536,8 +613,9 @@ class _CreateOrderScreenState extends State<CreateOrderScreen> {
   String? _selectedCustomerId;
   String? _selectedProductId;
 
-  final TextEditingController _quantityController =
-      TextEditingController(text: '1');
+  final TextEditingController _quantityController = TextEditingController(
+    text: '1',
+  );
 
   bool _isLoading = true;
   bool _isSaving = false;
@@ -555,49 +633,45 @@ class _CreateOrderScreenState extends State<CreateOrderScreen> {
     super.dispose();
   }
 
-  
-Future<void> _loadFormData() async {
-  try {
-    final results = await Future.wait([
-      _customerService.getCustomers(),
-      _productService.getProducts(),
-    ]);
+  Future<void> _loadFormData() async {
+    try {
+      final results = await Future.wait([
+        _customerService.getCustomers(),
+        _productService.getProducts(),
+      ]);
 
-    if (!mounted) return;
+      if (!mounted) return;
 
-    // Keep only active products and remove duplicate IDs.
-    final uniqueProducts = <String, Map<String, dynamic>>{};
+      // Keep only active products and remove duplicate IDs.
+      final uniqueProducts = <String, Map<String, dynamic>>{};
 
-    for (final product in results[1]) {
-      final id = product['id']?.toString();
+      for (final product in results[1]) {
+        final id = product['id']?.toString();
 
-      if (id != null &&
-          id.isNotEmpty &&
-          product['is_active'] == true) {
-        uniqueProducts[id] = product;
+        if (id != null && id.isNotEmpty && product['is_active'] == true) {
+          uniqueProducts[id] = product;
+        }
       }
+
+      setState(() {
+        _customers = results[0];
+
+        _products = uniqueProducts.values.toList();
+
+        // Reset selection after loading fresh data.
+        _selectedProductId = null;
+
+        _isLoading = false;
+      });
+    } catch (e) {
+      if (!mounted) return;
+
+      setState(() {
+        _error = e.toString();
+        _isLoading = false;
+      });
     }
-
-    setState(() {
-      _customers = results[0];
-
-      _products = uniqueProducts.values.toList();
-
-      // Reset selection after loading fresh data.
-      _selectedProductId = null;
-
-      _isLoading = false;
-    });
-  } catch (e) {
-    if (!mounted) return;
-
-    setState(() {
-      _error = e.toString();
-      _isLoading = false;
-    });
   }
-}
-
 
   Map<String, dynamic>? get _selectedProduct {
     for (final product in _products) {
@@ -648,10 +722,7 @@ Future<void> _loadFormData() async {
       if (existingIndex >= 0) {
         _cart[existingIndex]['quantity'] += quantity;
       } else {
-        _cart.add({
-          'product': product,
-          'quantity': quantity,
-        });
+        _cart.add({'product': product, 'quantity': quantity});
       }
 
       _selectedProductId = null;
@@ -666,9 +737,8 @@ Future<void> _loadFormData() async {
   }
 
   void _showMessage(String message) {
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text(message)),
-    );
+    ScaffoldMessenger.of(context)
+        .showSnackBar(SnackBar(content: Text(message)));
   }
 
   Future<void> _placeOrder() async {
@@ -691,20 +761,16 @@ Future<void> _loadFormData() async {
     try {
       await _orderService.createOrder(
         customerId: _selectedCustomerId!,
-        productIds: _cart.map<String>(
-          (item) => item['product']['id'].toString(),
-        ).toList(),
-        quantities: _cart.map<int>(
-          (item) => item['quantity'] as int,
-        ).toList(),
+        productIds: _cart
+            .map<String>((item) => item['product']['id'].toString())
+            .toList(),
+        quantities: _cart.map<int>((item) => item['quantity'] as int).toList(),
       );
 
       if (!mounted) return;
 
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Order created successfully!'),
-        ),
+        const SnackBar(content: Text('Order created successfully!')),
       );
 
       Navigator.pop(context, true);
@@ -747,311 +813,304 @@ Future<void> _loadFormData() async {
         ),
       ),
       body: _isLoading
-          ? const Center(
-              child: CircularProgressIndicator(color: _accent),
-            )
+          ? const Center(child: CircularProgressIndicator(color: _accent))
           : _error != null
-              ? Center(
-                  child: Padding(
-                    padding: const EdgeInsets.all(24),
-                    child: Text(
-                      'Unable to load order form.\n$_error',
-                      textAlign: TextAlign.center,
-                      style: const TextStyle(color: Colors.white70),
-                    ),
-                  ),
-                )
-              : Center(
-                  child: ConstrainedBox(
-                    constraints: const BoxConstraints(maxWidth: 850),
-                    child: Form(
-                      key: _formKey,
-                      child: ListView(
-                        padding: const EdgeInsets.all(22),
-                        children: [
-                          const Text(
-                            'CUSTOMER INFORMATION',
-                            style: TextStyle(
-                              color: _accent,
-                              fontWeight: FontWeight.bold,
-                              letterSpacing: 1,
-                            ),
+          ? Center(
+              child: Padding(
+                padding: const EdgeInsets.all(24),
+                child: Text(
+                  'Unable to load order form.\n$_error',
+                  textAlign: TextAlign.center,
+                  style: const TextStyle(color: Colors.white70),
+                ),
+              ),
+            )
+          : Center(
+              child: ConstrainedBox(
+                constraints: const BoxConstraints(maxWidth: 850),
+                child: Form(
+                  key: _formKey,
+                  child: ListView(
+                    padding: const EdgeInsets.all(22),
+                    children: [
+                      const Text(
+                        'CUSTOMER INFORMATION',
+                        style: TextStyle(
+                          color: _accent,
+                          fontWeight: FontWeight.bold,
+                          letterSpacing: 1,
+                        ),
+                      ),
+
+                      _buildLabel('Select Customer'),
+
+                      DropdownButtonFormField<String>(
+                        key: ValueKey(_selectedCustomerId),
+                        initialValue: _selectedCustomerId,
+                        dropdownColor: _card,
+                        style: const TextStyle(color: Colors.white),
+                        decoration: InputDecoration(
+                          filled: true,
+                          fillColor: _card,
+                          border: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(12),
+                            borderSide: BorderSide.none,
                           ),
+                        ),
+                        hint: const Text(
+                          'Choose a customer',
+                          style: TextStyle(color: Colors.white54),
+                        ),
+                        items: _customers.map((customer) {
+                          return DropdownMenuItem<String>(
+                            value: customer['id'].toString(),
+                            child: Text(customer['name'] ?? 'Customer'),
+                          );
+                        }).toList(),
+                        onChanged: (value) {
+                          setState(() {
+                            _selectedCustomerId = value;
+                          });
+                        },
+                      ),
 
-                          _buildLabel('Select Customer'),
+                      const SizedBox(height: 30),
 
-                          DropdownButtonFormField<String>(
-                            key: ValueKey(_selectedCustomerId),
-                            initialValue: _selectedCustomerId,
-                            dropdownColor: _card,
-                            style: const TextStyle(color: Colors.white),
-                            decoration: InputDecoration(
-                              filled: true,
-                              fillColor: _card,
-                              border: OutlineInputBorder(
-                                borderRadius: BorderRadius.circular(12),
-                                borderSide: BorderSide.none,
-                              ),
-                            ),
-                            hint: const Text(
-                              'Choose a customer',
-                              style: TextStyle(color: Colors.white54),
-                            ),
-                            items: _customers.map((customer) {
-                              return DropdownMenuItem<String>(
-                                value: customer['id'].toString(),
-                                child: Text(
-                                  customer['name'] ?? 'Customer',
-                                ),
-                              );
-                            }).toList(),
-                            onChanged: (value) {
-                              setState(() {
-                                _selectedCustomerId = value;
-                              });
-                            },
+                      const Text(
+                        'ADD PRODUCTS',
+                        style: TextStyle(
+                          color: _accent,
+                          fontWeight: FontWeight.bold,
+                          letterSpacing: 1,
+                        ),
+                      ),
+
+                      _buildLabel('Select Product'),
+
+                      DropdownButtonFormField<String>(
+                        initialValue:
+                            _products.any(
+                              (product) =>
+                                  product['id'].toString() ==
+                                  _selectedProductId,
+                            )
+                            ? _selectedProductId
+                            : null,
+                        dropdownColor: _card,
+                        style: const TextStyle(color: Colors.white),
+                        decoration: InputDecoration(
+                          filled: true,
+                          fillColor: _card,
+                          border: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(12),
+                            borderSide: BorderSide.none,
                           ),
-
-                          const SizedBox(height: 30),
-
-                          const Text(
-                            'ADD PRODUCTS',
-                            style: TextStyle(
-                              color: _accent,
-                              fontWeight: FontWeight.bold,
-                              letterSpacing: 1,
+                        ),
+                        hint: const Text(
+                          'Choose a product',
+                          style: TextStyle(color: Colors.white54),
+                        ),
+                        items: _products.map((product) {
+                          return DropdownMenuItem<String>(
+                            value: product['id'].toString(),
+                            child: Text(
+                              '${product['name']} — ₹${product['unit_price']}',
                             ),
+                          );
+                        }).toList(),
+                        onChanged: (value) {
+                          setState(() {
+                            _selectedProductId = value;
+                          });
+                        },
+                      ),
+
+                      _buildLabel('Quantity'),
+
+                      TextFormField(
+                        controller: _quantityController,
+                        keyboardType: TextInputType.number,
+                        style: const TextStyle(color: Colors.white),
+                        decoration: InputDecoration(
+                          hintText: 'Enter quantity',
+                          hintStyle: const TextStyle(color: Colors.white38),
+                          filled: true,
+                          fillColor: _card,
+                          border: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(12),
+                            borderSide: BorderSide.none,
                           ),
+                        ),
+                      ),
 
-                          _buildLabel('Select Product'),
+                      const SizedBox(height: 15),
 
-                          DropdownButtonFormField<String>(
-                            initialValue: _products.any(
-                             (product) =>
-                               product['id'].toString() == _selectedProductId,
-                                   )
-                                  ? _selectedProductId
-                                   : null,
-                            dropdownColor: _card,
-                            style: const TextStyle(color: Colors.white),
-                            decoration: InputDecoration(
-                              filled: true,
-                              fillColor: _card,
-                              border: OutlineInputBorder(
-                                borderRadius: BorderRadius.circular(12),
-                                borderSide: BorderSide.none,
-                              ),
-                            ),
-                            hint: const Text(
-                              'Choose a product',
-                              style: TextStyle(color: Colors.white54),
-                            ),
-                            items: _products.map((product) {
-                              return DropdownMenuItem<String>(
-                                value: product['id'].toString(),
-                                child: Text(
-                                  '${product['name']} — ₹${product['unit_price']}',
-                                ),
-                              );
-                            }).toList(),
-                            onChanged: (value) {
-                              setState(() {
-                                _selectedProductId = value;
-                              });
-                            },
-                          ),
-
-                          _buildLabel('Quantity'),
-
-                          TextFormField(
-                            controller: _quantityController,
-                            keyboardType: TextInputType.number,
-                            style: const TextStyle(color: Colors.white),
-                            decoration: InputDecoration(
-                              hintText: 'Enter quantity',
-                              hintStyle: const TextStyle(
-                                color: Colors.white38,
-                              ),
-                              filled: true,
-                              fillColor: _card,
-                              border: OutlineInputBorder(
-                                borderRadius: BorderRadius.circular(12),
-                                borderSide: BorderSide.none,
-                              ),
-                            ),
-                          ),
-
-                          const SizedBox(height: 15),
-
-                          SizedBox(
-                            height: 48,
-                            child: ElevatedButton.icon(
-                              onPressed: _addToCart,
-                              icon: const Icon(Icons.add),
-                              label: const Text('Add Product'),
-                              style: ElevatedButton.styleFrom(
-                                backgroundColor: _accent,
-                                foregroundColor: _background,
-                                shape: RoundedRectangleBorder(
-                                  borderRadius: BorderRadius.circular(12),
-                                ),
-                              ),
-                            ),
-                          ),
-
-                          const SizedBox(height: 30),
-
-                          const Text(
-                            'ORDER ITEMS',
-                            style: TextStyle(
-                              color: _accent,
-                              fontWeight: FontWeight.bold,
-                              letterSpacing: 1,
-                            ),
-                          ),
-
-                          const SizedBox(height: 15),
-
-                          if (_cart.isEmpty)
-                            const Padding(
-                              padding: EdgeInsets.symmetric(vertical: 20),
-                              child: Text(
-                                'No products added yet.',
-                                style: TextStyle(color: Colors.white54),
-                              ),
-                            ),
-
-                          ..._cart.asMap().entries.map((entry) {
-                            final index = entry.key;
-                            final item = entry.value;
-                            final product =
-                                item['product'] as Map<String, dynamic>;
-                            final quantity = item['quantity'] as int;
-                            final price =
-                                (product['unit_price'] as num).toDouble();
-
-                            return Container(
-                              margin: const EdgeInsets.only(bottom: 10),
-                              padding: const EdgeInsets.all(15),
-                              decoration: BoxDecoration(
-                                color: _card,
-                                borderRadius: BorderRadius.circular(12),
-                              ),
-                              child: Row(
-                                children: [
-                                  Expanded(
-                                    child: Column(
-                                      crossAxisAlignment:
-                                          CrossAxisAlignment.start,
-                                      children: [
-                                        Text(
-                                          product['name'] ?? 'Product',
-                                          style: const TextStyle(
-                                            color: Colors.white,
-                                            fontWeight: FontWeight.bold,
-                                          ),
-                                        ),
-                                        const SizedBox(height: 5),
-                                        Text(
-                                          '$quantity × ₹$price',
-                                          style: const TextStyle(
-                                            color: Colors.white54,
-                                            fontSize: 12,
-                                          ),
-                                        ),
-                                      ],
-                                    ),
-                                  ),
-                                  Text(
-                                    '₹${(price * quantity).toStringAsFixed(2)}',
-                                    style: const TextStyle(
-                                      color: _accent,
-                                      fontWeight: FontWeight.bold,
-                                    ),
-                                  ),
-                                  IconButton(
-                                    onPressed: () =>
-                                        _removeFromCart(index),
-                                    icon: const Icon(
-                                      Icons.delete_outline,
-                                      color: Colors.redAccent,
-                                    ),
-                                  ),
-                                ],
-                              ),
-                            );
-                          }),
-
-                          const SizedBox(height: 15),
-
-                          Container(
-                            padding: const EdgeInsets.all(18),
-                            decoration: BoxDecoration(
-                              color: _card,
+                      SizedBox(
+                        height: 48,
+                        child: ElevatedButton.icon(
+                          onPressed: _addToCart,
+                          icon: const Icon(Icons.add),
+                          label: const Text('Add Product'),
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: _accent,
+                            foregroundColor: _background,
+                            shape: RoundedRectangleBorder(
                               borderRadius: BorderRadius.circular(12),
                             ),
-                            child: Row(
-                              children: [
-                                const Text(
-                                  'ORDER TOTAL',
-                                  style: TextStyle(
-                                    color: Colors.white70,
-                                    fontWeight: FontWeight.bold,
-                                  ),
-                                ),
-                                const Spacer(),
-                                Text(
-                                  '₹${_total.toStringAsFixed(2)}',
-                                  style: const TextStyle(
-                                    color: _accent,
-                                    fontSize: 21,
-                                    fontWeight: FontWeight.bold,
-                                  ),
-                                ),
-                              ],
-                            ),
                           ),
+                        ),
+                      ),
 
-                          const SizedBox(height: 25),
+                      const SizedBox(height: 30),
 
-                          SizedBox(
-                            height: 54,
-                            child: ElevatedButton(
-                              onPressed: _isSaving ? null : _placeOrder,
-                              style: ElevatedButton.styleFrom(
-                                backgroundColor: _accent,
-                                foregroundColor: _background,
-                                disabledBackgroundColor:
-                                    _accent.withValues(alpha: 0.5),
-                                shape: RoundedRectangleBorder(
-                                  borderRadius: BorderRadius.circular(12),
-                                ),
-                              ),
-                              child: _isSaving
-                                  ? const SizedBox(
-                                      height: 20,
-                                      width: 20,
-                                      child: CircularProgressIndicator(
-                                        color: _background,
-                                        strokeWidth: 2,
-                                      ),
-                                    )
-                                  : const Text(
-                                      'Place Order',
-                                      style: TextStyle(
+                      const Text(
+                        'ORDER ITEMS',
+                        style: TextStyle(
+                          color: _accent,
+                          fontWeight: FontWeight.bold,
+                          letterSpacing: 1,
+                        ),
+                      ),
+
+                      const SizedBox(height: 15),
+
+                      if (_cart.isEmpty)
+                        const Padding(
+                          padding: EdgeInsets.symmetric(vertical: 20),
+                          child: Text(
+                            'No products added yet.',
+                            style: TextStyle(color: Colors.white54),
+                          ),
+                        ),
+
+                      ..._cart.asMap().entries.map((entry) {
+                        final index = entry.key;
+                        final item = entry.value;
+                        final product = item['product'] as Map<String, dynamic>;
+                        final quantity = item['quantity'] as int;
+                        final price = (product['unit_price'] as num).toDouble();
+
+                        return Container(
+                          margin: const EdgeInsets.only(bottom: 10),
+                          padding: const EdgeInsets.all(15),
+                          decoration: BoxDecoration(
+                            color: _card,
+                            borderRadius: BorderRadius.circular(12),
+                          ),
+                          child: Row(
+                            children: [
+                              Expanded(
+                                child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    Text(
+                                      product['name'] ?? 'Product',
+                                      style: const TextStyle(
+                                        color: Colors.white,
                                         fontWeight: FontWeight.bold,
-                                        fontSize: 15,
                                       ),
                                     ),
+                                    const SizedBox(height: 5),
+                                    Text(
+                                      '$quantity × ₹$price',
+                                      style: const TextStyle(
+                                        color: Colors.white54,
+                                        fontSize: 12,
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                              Text(
+                                '₹${(price * quantity).toStringAsFixed(2)}',
+                                style: const TextStyle(
+                                  color: _accent,
+                                  fontWeight: FontWeight.bold,
+                                ),
+                              ),
+                              IconButton(
+                                onPressed: () => _removeFromCart(index),
+                                icon: const Icon(
+                                  Icons.delete_outline,
+                                  color: Colors.redAccent,
+                                ),
+                              ),
+                            ],
+                          ),
+                        );
+                      }),
+
+                      const SizedBox(height: 15),
+
+                      Container(
+                        padding: const EdgeInsets.all(18),
+                        decoration: BoxDecoration(
+                          color: _card,
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                        child: Row(
+                          children: [
+                            const Text(
+                              'ORDER TOTAL',
+                              style: TextStyle(
+                                color: Colors.white70,
+                                fontWeight: FontWeight.bold,
+                              ),
+                            ),
+                            const Spacer(),
+                            Text(
+                              '₹${_total.toStringAsFixed(2)}',
+                              style: const TextStyle(
+                                color: _accent,
+                                fontSize: 21,
+                                fontWeight: FontWeight.bold,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+
+                      const SizedBox(height: 25),
+
+                      SizedBox(
+                        height: 54,
+                        child: ElevatedButton(
+                          onPressed: _isSaving ? null : _placeOrder,
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: _accent,
+                            foregroundColor: _background,
+                            disabledBackgroundColor: _accent.withValues(
+                              alpha: 0.5,
+                            ),
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(12),
                             ),
                           ),
-
-                          const SizedBox(height: 30),
-                        ],
+                          child: _isSaving
+                              ? const SizedBox(
+                                  height: 20,
+                                  width: 20,
+                                  child: CircularProgressIndicator(
+                                    color: _background,
+                                    strokeWidth: 2,
+                                  ),
+                                )
+                              : const Text(
+                                  'Place Order',
+                                  style: TextStyle(
+                                    fontWeight: FontWeight.bold,
+                                    fontSize: 15,
+                                  ),
+                                ),
+                        ),
                       ),
-                    ),
+
+                      const SizedBox(height: 30),
+                    ],
                   ),
                 ),
+              ),
+            ),
     );
   }
 }
