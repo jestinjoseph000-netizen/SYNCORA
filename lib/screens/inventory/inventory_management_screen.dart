@@ -1,5 +1,5 @@
-
 import 'package:flutter/material.dart';
+
 import '../../services/inventory_service.dart';
 import '../../services/product_service.dart';
 
@@ -11,8 +11,7 @@ class InventoryManagementScreen extends StatefulWidget {
       _InventoryManagementScreenState();
 }
 
-class _InventoryManagementScreenState
-    extends State<InventoryManagementScreen> {
+class _InventoryManagementScreenState extends State<InventoryManagementScreen> {
   final InventoryService _inventoryService = InventoryService();
   final ProductService _productService = ProductService();
 
@@ -46,8 +45,8 @@ class _InventoryManagementScreenState
 
       setState(() {
         _products = results[0];
-        _lowStockProducts = results[1]; 
-        _movements = results[2]; 
+        _lowStockProducts = results[1];
+        _movements = results[2];
         _isLoading = false;
       });
     } catch (e) {
@@ -124,10 +123,9 @@ class _InventoryManagementScreenState
                   children: [
                     Text(
                       product['name'] ?? 'Product',
-                      style: const TextStyle(
-                        color: Color(0xFF00D68F),
-                        fontWeight: FontWeight.bold,
-                      ),
+                      maxLines: 2,
+                      overflow: TextOverflow.ellipsis,
+                      style: const TextStyle(color: Colors.white),
                     ),
                     const SizedBox(height: 8),
                     Text(
@@ -233,9 +231,7 @@ class _InventoryManagementScreenState
                       ? const SizedBox(
                           height: 18,
                           width: 18,
-                          child: CircularProgressIndicator(
-                            strokeWidth: 2,
-                          ),
+                          child: CircularProgressIndicator(strokeWidth: 2),
                         )
                       : const Text('Confirm'),
                 ),
@@ -267,10 +263,7 @@ class _InventoryManagementScreenState
           const SizedBox(height: 5),
           Text(
             subtitle,
-            style: const TextStyle(
-              color: Colors.white54,
-              fontSize: 12,
-            ),
+            style: const TextStyle(color: Colors.white54, fontSize: 12),
           ),
         ],
       ),
@@ -299,6 +292,8 @@ class _InventoryManagementScreenState
               Expanded(
                 child: Text(
                   product['name'] ?? 'Unnamed Product',
+                  maxLines: 2,
+                  overflow: TextOverflow.ellipsis,
                   style: const TextStyle(
                     color: Colors.white,
                     fontWeight: FontWeight.bold,
@@ -319,10 +314,7 @@ class _InventoryManagementScreenState
           const SizedBox(height: 8),
           Text(
             'SKU: ${product['sku'] ?? '-'}',
-            style: const TextStyle(
-              color: Colors.white54,
-              fontSize: 12,
-            ),
+            style: const TextStyle(color: Colors.white54, fontSize: 12),
           ),
           const SizedBox(height: 14),
           Row(
@@ -346,10 +338,7 @@ class _InventoryManagementScreenState
           const SizedBox(height: 5),
           Text(
             'Low-stock threshold: $threshold',
-            style: const TextStyle(
-              color: Colors.white38,
-              fontSize: 11,
-            ),
+            style: const TextStyle(color: Colors.white38, fontSize: 11),
           ),
           const SizedBox(height: 16),
           SizedBox(
@@ -379,8 +368,7 @@ class _InventoryManagementScreenState
 
     return Column(
       children: _movements.take(20).map((movement) {
-        final bool isStockIn =
-            movement['movement_type'] == 'STOCK_IN';
+        final bool isStockIn = movement['movement_type'] == 'STOCK_IN';
 
         return Container(
           margin: const EdgeInsets.only(bottom: 10),
@@ -392,9 +380,7 @@ class _InventoryManagementScreenState
           child: Row(
             children: [
               Icon(
-                isStockIn
-                    ? Icons.south_west_rounded
-                    : Icons.north_east_rounded,
+                isStockIn ? Icons.south_west_rounded : Icons.north_east_rounded,
                 color: isStockIn
                     ? const Color(0xFF00D68F)
                     : Colors.orangeAccent,
@@ -406,6 +392,8 @@ class _InventoryManagementScreenState
                   children: [
                     Text(
                       movement['product_name'] ?? 'Product',
+                      maxLines: 2,
+                      overflow: TextOverflow.ellipsis,
                       style: const TextStyle(
                         color: Colors.white,
                         fontWeight: FontWeight.bold,
@@ -422,6 +410,8 @@ class _InventoryManagementScreenState
                     if (movement['note'] != null)
                       Text(
                         movement['note'].toString(),
+                        maxLines: 2,
+                        overflow: TextOverflow.ellipsis,
                         style: const TextStyle(
                           color: Colors.white38,
                           fontSize: 11,
@@ -462,7 +452,7 @@ class _InventoryManagementScreenState
           IconButton(
             onPressed: _loadInventory,
             icon: const Icon(Icons.refresh),
-             color: Color(0xFF00D68F),
+            color: Color(0xFF00D68F),
             tooltip: 'Refresh',
           ),
         ],
@@ -470,134 +460,128 @@ class _InventoryManagementScreenState
       body: _isLoading
           ? const Center(child: CircularProgressIndicator())
           : _error != null
-              ? Center(
-                  child: Padding(
-                    padding: const EdgeInsets.all(24),
-                    child: Column(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        Text(
-                          'Unable to load inventory.\n$_error',
-                          textAlign: TextAlign.center,
-                          style: const TextStyle(color: Colors.white70),
-                        ),
-                        const SizedBox(height: 16),
-                        ElevatedButton(
-                          onPressed: _loadInventory,
-                          child: const Text('Retry'),
-                        ),
-                      ],
+          ? Center(
+              child: Padding(
+                padding: const EdgeInsets.all(24),
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Text(
+                      'Unable to load inventory.\n$_error',
+                      textAlign: TextAlign.center,
+                      style: const TextStyle(color: Colors.white70),
                     ),
+                    const SizedBox(height: 16),
+                    ElevatedButton(
+                      onPressed: _loadInventory,
+                      child: const Text('Retry'),
+                    ),
+                  ],
+                ),
+              ),
+            )
+          : RefreshIndicator(
+              onRefresh: _loadInventory,
+              child: ListView(
+                padding: const EdgeInsets.all(20),
+                children: [
+                  _buildSectionTitle(
+                    'Stock Overview',
+                    'Monitor and manage your product quantities.',
                   ),
-                )
-              : RefreshIndicator(
-                  onRefresh: _loadInventory,
-                  child: ListView(
-                    padding: const EdgeInsets.all(20),
-                    children: [
-                      _buildSectionTitle(
-                        'Stock Overview',
-                        'Monitor and manage your product quantities.',
-                      ),
 
-                      if (_products.isEmpty)
-                        const Text(
-                          'No products found. Add products first.',
-                          style: TextStyle(color: Colors.white54),
-                        )
-                      else
-                        LayoutBuilder(
-                          builder: (context, constraints) {
-                            final columns =
-                                constraints.maxWidth > 850 ? 3 : 2;
+                  if (_products.isEmpty)
+                    const Text(
+                      'No products found. Add products first.',
+                      style: TextStyle(color: Colors.white54),
+                    )
+                  else
+                    LayoutBuilder(
+                      builder: (context, constraints) {
+                        final columns = constraints.maxWidth > 850
+                            ? 3
+                            : constraints.maxWidth > 560
+                            ? 2
+                            : 1;
 
-                            return GridView.builder(
-                              shrinkWrap: true,
-                              physics:
-                                  const NeverScrollableScrollPhysics(),
-                              itemCount: _products.length,
-                              gridDelegate:
-                                  SliverGridDelegateWithFixedCrossAxisCount(
+                        return GridView.builder(
+                          shrinkWrap: true,
+                          physics: const NeverScrollableScrollPhysics(),
+                          itemCount: _products.length,
+                          gridDelegate:
+                              SliverGridDelegateWithFixedCrossAxisCount(
                                 crossAxisCount: columns,
                                 crossAxisSpacing: 12,
                                 mainAxisSpacing: 12,
                                 mainAxisExtent: 220,
                               ),
-                              itemBuilder: (context, index) {
-                                return _buildProductCard(
-                                  _products[index],
-                                );
-                              },
-                            );
+                          itemBuilder: (context, index) {
+                            return _buildProductCard(_products[index]);
                           },
-                        ),
+                        );
+                      },
+                    ),
 
-                      const SizedBox(height: 30),
+                  const SizedBox(height: 30),
 
-                      _buildSectionTitle(
-                        'Low Stock Alerts',
-                        'Products at or below their stock threshold.',
-                      ),
+                  _buildSectionTitle(
+                    'Low Stock Alerts',
+                    'Products at or below their stock threshold.',
+                  ),
 
-                      if (_lowStockProducts.isEmpty)
-                        const Text(
-                          'All products have sufficient stock.',
-                          style: TextStyle(
-                            color: Color(0xFF00D68F),
+                  if (_lowStockProducts.isEmpty)
+                    const Text(
+                      'All products have sufficient stock.',
+                      style: TextStyle(color: Color(0xFF00D68F)),
+                    )
+                  else
+                    ..._lowStockProducts.map(
+                      (product) => Container(
+                        margin: const EdgeInsets.only(bottom: 8),
+                        padding: const EdgeInsets.all(14),
+                        decoration: BoxDecoration(
+                          color: const Color(0xFF241B15),
+                          borderRadius: BorderRadius.circular(10),
+                          border: Border.all(
+                            color: Colors.orangeAccent.withValues(alpha: 0.3),
                           ),
-                        )
-                      else
-                        ..._lowStockProducts.map(
-                          (product) => Container(
-                            margin: const EdgeInsets.only(bottom: 8),
-                            padding: const EdgeInsets.all(14),
-                            decoration: BoxDecoration(
-                              color: const Color(0xFF241B15),
-                              borderRadius: BorderRadius.circular(10),
-                              border: Border.all(
-                                color: Colors.orangeAccent.withValues(
-                                  alpha: 0.3,
-                                ),
+                        ),
+                        child: Row(
+                          children: [
+                            const Icon(
+                              Icons.warning_amber_rounded,
+                              color: Colors.orangeAccent,
+                            ),
+                            const SizedBox(width: 10),
+                            Expanded(
+                              child: Text(
+                                product['name'] ?? 'Product',
+                                style: const TextStyle(color: Colors.white),
                               ),
                             ),
-                            child: Row(
-                              children: [
-                                const Icon(
-                                  Icons.warning_amber_rounded,
-                                  color: Colors.orangeAccent,
-                                ),
-                                const SizedBox(width: 10),
-                                Expanded(
-                                  child: Text(
-                                    product['name'] ?? 'Product',
-                                    style: const TextStyle(
-                                      color: Colors.white,
-                                    ),
-                                  ),
-                                ),
-                                Text(
-                                  '${product['stock_quantity']} left',
-                                  style: const TextStyle(
-                                    color: Colors.orangeAccent,
-                                    fontWeight: FontWeight.bold,
-                                  ),
-                                ),
-                              ],
+                            Text(
+                              '${product['stock_quantity']} left',
+                              style: const TextStyle(
+                                color: Colors.orangeAccent,
+                                fontWeight: FontWeight.bold,
+                              ),
                             ),
-                          ),
+                          ],
                         ),
-
-                      const SizedBox(height: 30),
-
-                      _buildSectionTitle(
-                        'Recent Stock Movements',
-                        'Latest inventory transactions.',
                       ),
+                    ),
 
-                      _buildMovementHistory(),
-                    ],
+                  const SizedBox(height: 30),
+
+                  _buildSectionTitle(
+                    'Recent Stock Movements',
+                    'Latest inventory transactions.',
                   ),
-                ),
+
+                  _buildMovementHistory(),
+                ],
+              ),
+            ),
     );
   }
 }

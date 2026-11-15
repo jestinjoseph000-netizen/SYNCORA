@@ -1,4 +1,3 @@
-
 import 'package:flutter/material.dart';
 
 import '../../services/forecast_service.dart';
@@ -7,12 +6,10 @@ class ProductForecastScreen extends StatefulWidget {
   const ProductForecastScreen({super.key});
 
   @override
-  State<ProductForecastScreen> createState() =>
-      _ProductForecastScreenState();
+  State<ProductForecastScreen> createState() => _ProductForecastScreenState();
 }
 
-class _ProductForecastScreenState
-    extends State<ProductForecastScreen> {
+class _ProductForecastScreenState extends State<ProductForecastScreen> {
   final ForecastService _forecastService = ForecastService();
 
   static const Color _background = Color(0xFF080B10);
@@ -55,8 +52,9 @@ class _ProductForecastScreenState
     });
 
     try {
-      final products = await _forecastService
-          .getProductPerformance(days: _selectedDays);
+      final products = await _forecastService.getProductPerformance(
+        days: _selectedDays,
+      );
 
       if (!mounted) return;
 
@@ -99,9 +97,7 @@ class _ProductForecastScreenState
     final result = List<Map<String, dynamic>>.from(_products);
 
     result.sort(
-      (a, b) => _toInt(b['units_sold']).compareTo(
-        _toInt(a['units_sold']),
-      ),
+      (a, b) => _toInt(b['units_sold']).compareTo(_toInt(a['units_sold'])),
     );
 
     return result.take(5).toList();
@@ -111,9 +107,7 @@ class _ProductForecastScreenState
     final result = List<Map<String, dynamic>>.from(_products);
 
     result.sort(
-      (a, b) => _toDouble(b['revenue']).compareTo(
-        _toDouble(a['revenue']),
-      ),
+      (a, b) => _toDouble(b['revenue']).compareTo(_toDouble(a['revenue'])),
     );
 
     return result.take(5).toList();
@@ -127,9 +121,9 @@ class _ProductForecastScreenState
     }).toList();
 
     result.sort(
-      (a, b) => _toDouble(b['trend_percent']).compareTo(
-        _toDouble(a['trend_percent']),
-      ),
+      (a, b) =>
+          _toDouble(b['trend_percent'])
+              .compareTo(_toDouble(a['trend_percent'])),
     );
 
     return result;
@@ -143,9 +137,9 @@ class _ProductForecastScreenState
     }).toList();
 
     result.sort(
-      (a, b) => _toDouble(a['trend_percent']).compareTo(
-        _toDouble(b['trend_percent']),
-      ),
+      (a, b) =>
+          _toDouble(a['trend_percent'])
+              .compareTo(_toDouble(b['trend_percent'])),
     );
 
     return result;
@@ -157,29 +151,37 @@ class _ProductForecastScreenState
     required IconData icon,
     required String subtitle,
   }) {
+    final isPhone = MediaQuery.of(context).size.width < 600;
+
     return Container(
-      padding: const EdgeInsets.all(18),
+      width: double.infinity,
+      padding: EdgeInsets.all(isPhone ? 12 : 18),
       decoration: BoxDecoration(
         color: _surface,
         borderRadius: BorderRadius.circular(16),
         border: Border.all(color: Colors.white10),
       ),
       child: Column(
+        mainAxisSize: MainAxisSize.min,
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Icon(icon, color: _accent, size: 25),
-          const SizedBox(height: 15),
+          Icon(icon, color: _accent, size: isPhone ? 19 : 25),
+          SizedBox(height: isPhone ? 7 : 15),
           Text(
             value,
-            style: const TextStyle(
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+            style: TextStyle(
               color: Colors.white,
-              fontSize: 22,
+              fontSize: isPhone ? 20 : 22,
               fontWeight: FontWeight.bold,
             ),
           ),
-          const SizedBox(height: 6),
+          SizedBox(height: isPhone ? 3 : 6),
           Text(
             title,
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
             style: const TextStyle(
               color: Colors.white70,
               fontSize: 13,
@@ -189,10 +191,9 @@ class _ProductForecastScreenState
           const SizedBox(height: 4),
           Text(
             subtitle,
-            style: const TextStyle(
-              color: Colors.white38,
-              fontSize: 11,
-            ),
+            maxLines: 2,
+            overflow: TextOverflow.ellipsis,
+            style: const TextStyle(color: Colors.white38, fontSize: 11),
           ),
         ],
       ),
@@ -216,10 +217,7 @@ class _ProductForecastScreenState
           const SizedBox(height: 5),
           Text(
             subtitle,
-            style: const TextStyle(
-              color: Colors.white54,
-              fontSize: 12,
-            ),
+            style: const TextStyle(color: Colors.white54, fontSize: 12),
           ),
         ],
       ),
@@ -236,11 +234,13 @@ class _ProductForecastScreenState
   }) {
     final maximum = products.isEmpty
         ? 1.0
-        : products.map((p) => isRevenue
-            ? _toDouble(p[metricKey])
-            : _toDouble(p[metricKey])).reduce(
-                (a, b) => a > b ? a : b,
-              );
+        : products
+              .map(
+                (p) => isRevenue
+                    ? _toDouble(p[metricKey])
+                    : _toDouble(p[metricKey]),
+              )
+              .reduce((a, b) => a > b ? a : b);
 
     return Container(
       padding: const EdgeInsets.all(18),
@@ -325,8 +325,9 @@ class _ProductForecastScreenState
                         value: progress,
                         minHeight: 7,
                         backgroundColor: Colors.white10,
-                        valueColor:
-                            const AlwaysStoppedAnimation<Color>(_accent),
+                        valueColor: const AlwaysStoppedAnimation<Color>(
+                          _accent,
+                        ),
                       ),
                     ),
                   ],
@@ -373,9 +374,7 @@ class _ProductForecastScreenState
                 child: Row(
                   children: [
                     Icon(
-                      increasing
-                          ? Icons.trending_up
-                          : Icons.trending_down,
+                      increasing ? Icons.trending_up : Icons.trending_down,
                       color: color,
                       size: 22,
                     ),
@@ -425,8 +424,9 @@ class _ProductForecastScreenState
     final forecastProducts = List<Map<String, dynamic>>.from(_products);
 
     forecastProducts.sort(
-      (a, b) => _toDouble(b['projected_units_next_7_days'])
-          .compareTo(_toDouble(a['projected_units_next_7_days'])),
+      (a, b) =>
+          _toDouble(b['projected_units_next_7_days'])
+              .compareTo(_toDouble(a['projected_units_next_7_days'])),
     );
 
     final products = forecastProducts
@@ -457,8 +457,9 @@ class _ProductForecastScreenState
             )
           else
             ...products.map((product) {
-              final forecast =
-                  _toDouble(product['projected_units_next_7_days']);
+              final forecast = _toDouble(
+                product['projected_units_next_7_days'],
+              );
 
               final stock = _toInt(product['stock_quantity']);
 
@@ -565,9 +566,7 @@ class _ProductForecastScreenState
             labelStyle: const TextStyle(color: Colors.white54),
             filled: true,
             fillColor: _surface,
-            border: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(12),
-            ),
+            border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
           ),
           items: const [
             DropdownMenuItem(value: 7, child: Text('Last 7 days')),
@@ -590,7 +589,11 @@ class _ProductForecastScreenState
 
         LayoutBuilder(
           builder: (context, constraints) {
-            final columns = constraints.maxWidth > 750 ? 4 : 2;
+            final columns = constraints.maxWidth > 750
+                ? 4
+                : constraints.maxWidth > 500
+                ? 2
+                : 1;
 
             return GridView.count(
               crossAxisCount: columns,
@@ -598,7 +601,11 @@ class _ProductForecastScreenState
               physics: const NeverScrollableScrollPhysics(),
               crossAxisSpacing: 12,
               mainAxisSpacing: 12,
-              childAspectRatio: columns == 4 ? 1.25 : 1.45,
+              childAspectRatio: columns == 4
+                  ? 1.25
+                  : columns == 2
+                  ? 1.45
+                  : 2.5,
               children: [
                 _buildStatCard(
                   title: 'Units Sold',
@@ -680,11 +687,7 @@ class _ProductForecastScreenState
           'daily units sold during the selected period, multiplied '
           'by seven. It is a basic estimate, not a guaranteed prediction. '
           'Products without sales history are excluded.',
-          style: TextStyle(
-            color: Colors.white38,
-            fontSize: 11,
-            height: 1.5,
-          ),
+          style: TextStyle(color: Colors.white38, fontSize: 11, height: 1.5),
         ),
       ],
     );
@@ -723,47 +726,43 @@ class _ProductForecastScreenState
                   ? const Padding(
                       padding: EdgeInsets.all(70),
                       child: Center(
-                        child: CircularProgressIndicator(
-                          color: _accent,
-                        ),
+                        child: CircularProgressIndicator(color: _accent),
                       ),
                     )
                   : _error != null
-                      ? Center(
-                          child: Column(
-                            children: [
-                              const Icon(
-                                Icons.error_outline,
-                                color: Colors.redAccent,
-                                size: 35,
-                              ),
-                              const SizedBox(height: 12),
-                              Text(
-                                _error!,
-                                textAlign: TextAlign.center,
-                                style: const TextStyle(
-                                  color: Colors.white70,
-                                ),
-                              ),
-                              const SizedBox(height: 12),
-                              ElevatedButton(
-                                onPressed: _loadForecast,
-                                child: const Text('Retry'),
-                              ),
-                            ],
+                  ? Center(
+                      child: Column(
+                        children: [
+                          const Icon(
+                            Icons.error_outline,
+                            color: Colors.redAccent,
+                            size: 35,
                           ),
-                        )
-                      : _products.isEmpty
-                          ? const Padding(
-                              padding: EdgeInsets.all(40),
-                              child: Center(
-                                child: Text(
-                                  'No active products found.',
-                                  style: TextStyle(color: Colors.white54),
-                                ),
-                              ),
-                            )
-                          : _buildDashboard(),
+                          const SizedBox(height: 12),
+                          Text(
+                            _error!,
+                            textAlign: TextAlign.center,
+                            style: const TextStyle(color: Colors.white70),
+                          ),
+                          const SizedBox(height: 12),
+                          ElevatedButton(
+                            onPressed: _loadForecast,
+                            child: const Text('Retry'),
+                          ),
+                        ],
+                      ),
+                    )
+                  : _products.isEmpty
+                  ? const Padding(
+                      padding: EdgeInsets.all(40),
+                      child: Center(
+                        child: Text(
+                          'No active products found.',
+                          style: TextStyle(color: Colors.white54),
+                        ),
+                      ),
+                    )
+                  : _buildDashboard(),
             ),
           ),
         ),

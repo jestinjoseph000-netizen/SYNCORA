@@ -24,6 +24,9 @@ class AddProductScreen extends StatefulWidget {
 }
 
 class _AddProductScreenState extends State<AddProductScreen> {
+  String _limitProductName(String value) {
+  return String.fromCharCodes(value.runes.take(60));
+}
   final _formKey = GlobalKey<FormState>();
   final ProductService _service = ProductService();
   final _name = TextEditingController();
@@ -47,12 +50,11 @@ class _AddProductScreenState extends State<AddProductScreen> {
   void initState() {
     super.initState();
 
-    _name.text = widget.initialName ?? '';
+    _name.text = _limitProductName(widget.initialName ?? '');
     _barcode.text = widget.initialBarcode ?? '';
     _description.text = widget.initialDescription ?? '';
 
     _externalImageUrl = widget.initialImageUrl;
-
     _loadCategories();
   }
 
@@ -118,7 +120,7 @@ class _AddProductScreenState extends State<AddProductScreen> {
     setState(() => _saving = true);
     try {
       await _service.addProduct(
-        name: _name.text.trim(),
+        name: _limitProductName(_name.text.trim()),
         sku: _sku.text.trim(),
         barcode: _barcode.text,
         description: _description.text.trim(),
@@ -162,6 +164,7 @@ class _AddProductScreenState extends State<AddProductScreen> {
     String? Function(String?)? validator,
     TextInputType keyboard = TextInputType.text,
     int lines = 1,
+    int? maxLength,
   }) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -178,6 +181,7 @@ class _AddProductScreenState extends State<AddProductScreen> {
         TextFormField(
           controller: controller,
           maxLines: lines,
+          maxLength: maxLength,
           keyboardType: keyboard,
           validator: validator,
           style: const TextStyle(color: Colors.white),
@@ -374,6 +378,7 @@ class _AddProductScreenState extends State<AddProductScreen> {
                     _name,
                     Icons.label_outline,
                     validator: _required,
+                    maxLength: 60,
                   ),
                   const SizedBox(height: 18),
                   _field('SKU', _sku, Icons.qr_code, validator: _required),
