@@ -5,6 +5,36 @@ class ProductService {
   final SupabaseClient _client = Supabase.instance.client;
   static const String _bucket = 'product-images';
   static const int maxImageBytes = 5 * 1024 * 1024;
+  Future<Map<String, dynamic>?> getProductByBarcode(String barcode) async {
+    final result = await _client
+        .from('products')
+        .select('*, categories(name)')
+        .eq('barcode', barcode.trim())
+        .maybeSingle();
+
+    if (result == null) return null;
+
+    return Map<String, dynamic>.from(result);
+  }
+
+  Future<Map<String, dynamic>?> lookupElectronicsProduct(String barcode) async {
+    final response = await _client.functions.invoke(
+      'lookup-electronics',
+      body: {'barcode': barcode.trim()},
+    );
+
+    final data = response.data;
+
+    if (data is Map && data['found'] == true) {
+      final product = data['product'];
+
+      if (product is Map) {
+        return Map<String, dynamic>.from(product);
+      }
+    }
+
+    return null;
+  }
 
   Future<List<Map<String, dynamic>>> getProducts({
     String searchQuery = '',
@@ -70,9 +100,16 @@ class ProductService {
     String? categoryId,
     String? barcode,
     XFile? imageFile,
+    String? imageUrl,
   }) async {
-    String? imageUrl;
-    if (imageFile != null) imageUrl = await uploadProductImage(imageFile);
+    String? uploadedImageUrl;
+
+    if (imageFile != null) {
+      uploadedImageUrl = await uploadProductImage(imageFile);
+    }
+
+    final finalImageUrl = uploadedImageUrl ?? imageUrl;
+
     try {
       await _client.from('products').insert({
         'name': name,
@@ -83,10 +120,12 @@ class ProductService {
         'low_stock_threshold': lowStockThreshold,
         'category_id': categoryId,
         'barcode': _cleanBarcode(barcode),
-        'image_url': imageUrl,
+        'image_url': finalImageUrl,
       });
     } catch (_) {
-      if (imageUrl != null) await _deleteImageByUrl(imageUrl);
+      if (uploadedImageUrl != null) {
+        await _deleteImageByUrl(uploadedImageUrl);
+      }
       rethrow;
     }
   }

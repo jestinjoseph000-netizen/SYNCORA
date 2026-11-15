@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+import 'barcode_scanner_screen.dart';
 import '../../services/auth_service.dart';
 import '../../services/product_service.dart';
 import 'add_product_screen.dart';
@@ -152,6 +153,88 @@ class _ProductManagementScreenState extends State<ProductManagementScreen> {
     }
   }
 
+  Future<void> _quickAddProduct() async {
+    // Open barcode scanner.
+    final barcode = await Navigator.push<String>(
+      context,
+      MaterialPageRoute(builder: (context) => const BarcodeScannerScreen()),
+    );
+
+    if (!mounted || barcode == null || barcode.trim().isEmpty) {
+      return;
+    }
+
+    final cleanBarcode = barcode.trim();
+
+    // First, check SYNCORA's own database.
+    Map<String, dynamic>? existingProduct;
+
+    try {
+      existingProduct = await _service.getProductByBarcode(cleanBarcode);
+    } catch (e) {
+      if (!mounted) return;
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Could not check existing products: $e'),
+          backgroundColor: Colors.redAccent,
+        ),
+      );
+
+      return;
+    }
+
+    if (!mounted) return;
+
+    // If already registered, open its Edit Product screen.
+    if (existingProduct != null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Product already exists. Opening product details.'),
+        ),
+      );
+
+      await _editProduct(existingProduct);
+      return;
+    }
+
+    // Otherwise, try the external product database.
+    Map<String, dynamic>? details;
+
+    try {
+      details = await _service.lookupElectronicsProduct(cleanBarcode);
+    } catch (e) {
+      debugPrint('External product lookup failed: $e');
+    }
+
+    if (!mounted) return;
+
+    // Open Add Product with any available details.
+    final result = await Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (context) => AddProductScreen(
+          initialBarcode: cleanBarcode,
+          initialName: details?['name']?.toString(),
+          initialDescription: details?['description']?.toString(),
+          initialImageUrl: details?['image_url']?.toString(),
+        ),
+      ),
+    );
+
+    if (result == true && mounted) {
+      await _refreshProducts();
+    } else if (mounted && details == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text(
+            'No product details found online. You can enter them manually.',
+          ),
+        ),
+      );
+    }
+  }
+
   @override
   void dispose() {
     _searchController.dispose();
@@ -171,11 +254,17 @@ class _ProductManagementScreenState extends State<ProductManagementScreen> {
         ),
         actions: [
           if (_canManageProducts)
-            IconButton(
-              tooltip: 'Add Product',
-              onPressed: _addProduct,
-              icon: const Icon(Icons.add_circle_outline, color: accentColor),
-            ),
+            if (_canManageProducts)
+              IconButton(
+                tooltip: 'Quick Add by Barcode',
+                onPressed: _quickAddProduct,
+                icon: const Icon(Icons.qr_code_scanner, color: accentColor),
+              ),
+          IconButton(
+            tooltip: 'Add Product',
+            onPressed: _addProduct,
+            icon: const Icon(Icons.add_circle_outline, color: accentColor),
+          ),
           IconButton(
             onPressed: _refreshProducts,
             icon: const Icon(Icons.refresh, color: accentColor),

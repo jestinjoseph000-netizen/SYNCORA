@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
-
+import '../../services/invoice_service.dart';
+import '../invoices/invoice_preview_screen.dart';
 import '../../services/order_service.dart';
 import '../../services/customer_service.dart';
 import '../../services/product_service.dart';
@@ -13,6 +14,7 @@ class OrderManagementScreen extends StatefulWidget {
 
 class _OrderManagementScreenState extends State<OrderManagementScreen> {
   final OrderService _orderService = OrderService();
+  final InvoiceService _invoiceService = InvoiceService();
   final TextEditingController _searchController = TextEditingController();
 
   List<Map<String, dynamic>> _orders = [];
@@ -164,135 +166,245 @@ class _OrderManagementScreenState extends State<OrderManagementScreen> {
     }
   }
 
-  Future<void> _showOrderDetails(Map<String, dynamic> order) async {
+
+Future<void> _showOrderDetails(Map<String, dynamic> order) async {
+  try {
+    final details = await _orderService.getOrderDetails(
+      order['id'].toString(),
+    );
+
+    if (!mounted) return;
+
+    Map<String, dynamic>? invoice;
+
+    // Check whether an invoice has been generated for this order.
     try {
-      final details = await _orderService.getOrderDetails(
+      invoice = await _invoiceService.getInvoiceForOrder(
         order['id'].toString(),
       );
-
+    } catch (invoiceError) {
       if (!mounted) return;
 
-      await showDialog(
-        context: context,
-        builder: (dialogContext) {
-          final items = details['order_items'] as List? ?? [];
-          final customer = details['customers'] as Map? ?? {};
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Unable to check invoice: $invoiceError'),
+        ),
+      );
+    }
 
-          return AlertDialog(
-            backgroundColor: _card,
-            title: Text(
-              'Order ${details['order_number']}',
-              style: const TextStyle(color: Colors.white),
-            ),
-            content: SizedBox(
-              width: 450,
-              child: SingleChildScrollView(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
+    if (!mounted) return;
+
+    // Prepare invoice information for the dialog actions.
+    final invoiceId = invoice?['id']?.toString();
+    final invoiceNumber = invoice?['invoice_number']?.toString();
+    final invoiceStatus = invoice?['status']?.toString();
+
+    await showDialog(
+      context: context,
+      builder: (dialogContext) {
+        final items = details['order_items'] as List? ?? [];
+        final customer = details['customers'] as Map? ?? {};
+
+        return AlertDialog(
+          backgroundColor: _card,
+          title: Text(
+            'Order ${details['order_number']}',
+            style: const TextStyle(color: Colors.white),
+          ),
+          content: SizedBox(
+            width: 450,
+            child: SingleChildScrollView(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  const Text(
+                    'CUSTOMER',
+                    style: TextStyle(
+                      color: _accent,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                  const SizedBox(height: 8),
+                  Text(
+                    customer['name'] ?? 'Unknown Customer',
+                    style: const TextStyle(color: Colors.white),
+                  ),
+                  Text(
+                    customer['email'] ?? '',
+                    style: const TextStyle(color: Colors.white54),
+                  ),
+
+                  const SizedBox(height: 20),
+
+                  const Text(
+                    'ORDER ITEMS',
+                    style: TextStyle(
+                      color: _accent,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                  const SizedBox(height: 10),
+
+                  ...items.map((item) {
+                    final product = item['products'] as Map? ?? {};
+
+                    return Padding(
+                      padding: const EdgeInsets.only(bottom: 12),
+                      child: Row(
+                        children: [
+                          Expanded(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text(
+                                  product['name'] ?? 'Product',
+                                  style: const TextStyle(
+                                    color: Colors.white,
+                                  ),
+                                ),
+                                Text(
+                                  '${item['quantity']} × ₹${item['unit_price']}',
+                                  style: const TextStyle(
+                                    color: Colors.white54,
+                                    fontSize: 12,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                          Text(
+                            '₹${item['line_total']}',
+                            style: const TextStyle(
+                              color: _accent,
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
+                        ],
+                      ),
+                    );
+                  }),
+
+                  const Divider(color: Colors.white24),
+
+                  Row(
+                    children: [
+                      const Text(
+                        'Total',
+                        style: TextStyle(
+                          color: Colors.white,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                      const Spacer(),
+                      Text(
+                        '₹${details['total']}',
+                        style: const TextStyle(
+                          color: _accent,
+                          fontWeight: FontWeight.bold,
+                          fontSize: 18,
+                        ),
+                      ),
+                    ],
+                  ),
+
+                  if (invoiceId != null) ...[
+                    const SizedBox(height: 22),
+                    const Divider(color: Colors.white12),
+                    const SizedBox(height: 10),
+
                     const Text(
-                      'CUSTOMER',
+                      'INVOICE',
                       style: TextStyle(
                         color: _accent,
                         fontWeight: FontWeight.bold,
+                        letterSpacing: 1,
                       ),
                     ),
                     const SizedBox(height: 8),
+
                     Text(
-                      customer['name'] ?? 'Unknown Customer',
-                      style: const TextStyle(color: Colors.white),
-                    ),
-                    Text(
-                      customer['email'] ?? '',
-                      style: const TextStyle(color: Colors.white54),
-                    ),
-                    const SizedBox(height: 20),
-                    const Text(
-                      'ORDER ITEMS',
-                      style: TextStyle(
-                        color: _accent,
-                        fontWeight: FontWeight.bold,
+                      invoiceNumber ?? 'Invoice available',
+                      style: const TextStyle(
+                        color: Colors.white,
+                        fontWeight: FontWeight.w600,
                       ),
                     ),
-                    const SizedBox(height: 10),
-                    ...items.map((item) {
-                      final product = item['products'] as Map? ?? {};
 
-                      return Padding(
-                        padding: const EdgeInsets.only(bottom: 12),
-                        child: Row(
-                          children: [
-                            Expanded(
-                              child: Column(
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                children: [
-                                  Text(
-                                    product['name'] ?? 'Product',
-                                    style: const TextStyle(color: Colors.white),
-                                  ),
-                                  Text(
-                                    '${item['quantity']} × ₹${item['unit_price']}',
-                                    style: const TextStyle(
-                                      color: Colors.white54,
-                                      fontSize: 12,
-                                    ),
-                                  ),
-                                ],
-                              ),
-                            ),
-                            Text(
-                              '₹${item['line_total']}',
-                              style: const TextStyle(
-                                color: _accent,
-                                fontWeight: FontWeight.bold,
-                              ),
-                            ),
-                          ],
-                        ),
-                      );
-                    }),
-                    const Divider(color: Colors.white24),
-                    Row(
-                      children: [
-                        const Text(
-                          'Total',
+                    if (invoiceStatus == 'cancelled')
+                      const Padding(
+                        padding: EdgeInsets.only(top: 6),
+                        child: Text(
+                          'This invoice has been cancelled.',
                           style: TextStyle(
-                            color: Colors.white,
-                            fontWeight: FontWeight.bold,
+                            color: Colors.redAccent,
+                            fontSize: 12,
                           ),
                         ),
-                        const Spacer(),
-                        Text(
-                          '₹${details['total']}',
-                          style: const TextStyle(
-                            color: _accent,
-                            fontWeight: FontWeight.bold,
-                            fontSize: 18,
-                          ),
-                        ),
-                      ],
+                      ),
+                  ] else ...[
+                    const SizedBox(height: 18),
+                    const Text(
+                      'The invoice will become available once this order is confirmed.',
+                      style: TextStyle(
+                        color: Colors.white54,
+                        fontSize: 12,
+                      ),
                     ),
                   ],
-                ),
+                ],
               ),
             ),
-            actions: [
-              TextButton(
-                onPressed: () => Navigator.pop(dialogContext),
-                child: const Text('Close', style: TextStyle(color: _accent)),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(dialogContext),
+              child: const Text(
+                'Close',
+                style: TextStyle(color: _accent),
               ),
-            ],
-          );
-        },
-      );
-    } catch (e) {
-      if (!mounted) return;
+            ),
 
-      ScaffoldMessenger.of(context)
-          .showSnackBar(SnackBar(content: Text('Unable to load order: $e')));
-    }
+            if (invoiceId != null)
+              ElevatedButton.icon(
+                onPressed: () {
+                  Navigator.pop(dialogContext);
+
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (_) => InvoicePreviewScreen(
+                        invoiceId: invoiceId,
+                        invoiceNumber: invoiceNumber ?? 'SYNCORA-Invoice',
+                      ),
+                    ),
+                  );
+                },
+                icon: const Icon(Icons.picture_as_pdf),
+                label: const Text('View Invoice'),
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: _accent,
+                  foregroundColor: _background,
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(10),
+                  ),
+                ),
+              ),
+          ],
+        );
+      },
+    );
+  } catch (e) {
+    if (!mounted) return;
+
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text('Unable to load order: $e'),
+      ),
+    );
   }
+}
+
 
   Color _statusColor(String status) {
     switch (status.toLowerCase()) {

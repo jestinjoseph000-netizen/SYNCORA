@@ -1,7 +1,8 @@
 
 import 'package:flutter/material.dart';
 import '../../services/order_service.dart';
-
+import '../../services/invoice_service.dart';
+import '../invoices/invoice_preview_screen.dart';
 class CustomerOrdersScreen extends StatefulWidget {
   const CustomerOrdersScreen({super.key});
 
@@ -12,6 +13,7 @@ class CustomerOrdersScreen extends StatefulWidget {
 
 class _CustomerOrdersScreenState extends State<CustomerOrdersScreen> {
   final OrderService _orderService = OrderService();
+  final InvoiceService _invoiceService = InvoiceService();
 
   late Future<List<Map<String, dynamic>>> _ordersFuture;
 
@@ -60,118 +62,204 @@ class _CustomerOrdersScreenState extends State<CustomerOrdersScreen> {
         '${date.year}';
   }
 
-  void _showOrderDetails(Map<String, dynamic> order) {
-    final items = List<Map<String, dynamic>>.from(
-      order['order_items'] ?? [],
+
+Future<void> _showOrderDetails(
+  Map<String, dynamic> order,
+) async {
+  Map<String, dynamic>? invoice;
+
+  try {
+    invoice = await _invoiceService.getInvoiceForOrder(
+      order['id'].toString(),
     );
+  } catch (error) {
+    if (!mounted) return;
 
-    showModalBottomSheet(
-      context: context,
-      isScrollControlled: true,
-      backgroundColor: _card,
-      shape: const RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(
-          top: Radius.circular(24),
-        ),
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text('Unable to check invoice: $error'),
+        backgroundColor: Colors.redAccent,
       ),
-      builder: (context) {
-        return SafeArea(
-          child: Padding(
-            padding: const EdgeInsets.all(22),
-            child: SingleChildScrollView(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  const Text(
-                    'Order Details',
-                    style: TextStyle(
-                      color: Colors.white,
-                      fontSize: 22,
-                      fontWeight: FontWeight.bold,
-                    ),
-                  ),
-                  const SizedBox(height: 8),
-                  Text(
-                    order['order_number']?.toString() ?? 'Order',
-                    style: const TextStyle(color: Colors.white54),
-                  ),
-                  const Divider(height: 28, color: Colors.white12),
-
-                  ...items.map((item) {
-                    final product =
-                        item['products'] as Map<String, dynamic>? ?? {};
-
-                    return Padding(
-                      padding: const EdgeInsets.symmetric(vertical: 10),
-                      child: Row(
-                        children: [
-                          Expanded(
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                Text(
-                                  product['name']?.toString() ??
-                                      'Product unavailable',
-                                  style: const TextStyle(
-                                    color: Colors.white,
-                                    fontWeight: FontWeight.w600,
-                                  ),
-                                ),
-                                const SizedBox(height: 4),
-                                Text(
-                                  'Quantity: ${item['quantity']}',
-                                  style: const TextStyle(
-                                    color: Colors.white54,
-                                  ),
-                                ),
-                              ],
-                            ),
-                          ),
-                          Text(
-                            '₹${item['line_total']}',
-                            style: const TextStyle(
-                              color: _accent,
-                              fontWeight: FontWeight.bold,
-                            ),
-                          ),
-                        ],
-                      ),
-                    );
-                  }),
-
-                  const Divider(color: Colors.white12),
-
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    children: [
-                      const Text(
-                        'Order Total',
-                        style: TextStyle(
-                          color: Colors.white,
-                          fontSize: 17,
-                          fontWeight: FontWeight.bold,
-                        ),
-                      ),
-                      Text(
-                        '₹${order['total']}',
-                        style: const TextStyle(
-                          color: _accent,
-                          fontSize: 19,
-                          fontWeight: FontWeight.bold,
-                        ),
-                      ),
-                    ],
-                  ),
-                  const SizedBox(height: 20),
-                ],
-              ),
-            ),
-          ),
-        );
-      },
     );
   }
+
+  if (!mounted) return;
+
+  final items = List<Map<String, dynamic>>.from(
+    order['order_items'] ?? [],
+  );
+
+  showModalBottomSheet(
+    context: context,
+    isScrollControlled: true,
+    backgroundColor: _card,
+    shape: const RoundedRectangleBorder(
+      borderRadius: BorderRadius.vertical(
+        top: Radius.circular(24),
+      ),
+    ),
+    builder: (sheetContext) {
+      return SafeArea(
+        child: Padding(
+          padding: const EdgeInsets.all(22),
+          child: SingleChildScrollView(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                const Text(
+                  'Order Details',
+                  style: TextStyle(
+                    color: Colors.white,
+                    fontSize: 22,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+                const SizedBox(height: 8),
+
+                Text(
+                  order['order_number']?.toString() ?? 'Order',
+                  style: const TextStyle(color: Colors.white54),
+                ),
+
+                const Divider(height: 28, color: Colors.white12),
+
+                ...items.map((item) {
+                  final product =
+                      item['products'] as Map<String, dynamic>? ?? {};
+
+                  return Padding(
+                    padding: const EdgeInsets.symmetric(vertical: 10),
+                    child: Row(
+                      children: [
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                product['name']?.toString() ??
+                                    'Product unavailable',
+                                style: const TextStyle(
+                                  color: Colors.white,
+                                  fontWeight: FontWeight.w600,
+                                ),
+                              ),
+                              const SizedBox(height: 4),
+                              Text(
+                                'Quantity: ${item['quantity']}',
+                                style: const TextStyle(
+                                  color: Colors.white54,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                        Text(
+                          '₹${item['line_total']}',
+                          style: const TextStyle(
+                            color: _accent,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                      ],
+                    ),
+                  );
+                }),
+
+                const Divider(color: Colors.white12),
+
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    const Text(
+                      'Order Total',
+                      style: TextStyle(
+                        color: Colors.white,
+                        fontSize: 17,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                    Text(
+                      '₹${order['total']}',
+                      style: const TextStyle(
+                        color: _accent,
+                        fontSize: 19,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                  ],
+                ),
+
+                if (invoice != null) ...[
+                  const SizedBox(height: 20),
+
+                  SizedBox(
+                    width: double.infinity,
+                    child: ElevatedButton.icon(
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: _accent,
+                        foregroundColor: const Color(0xFF080B10),
+                        padding: const EdgeInsets.symmetric(vertical: 15),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                      ),
+                      icon: const Icon(Icons.picture_as_pdf),
+                      label: const Text(
+                        'View / Download Invoice',
+                        style: TextStyle(
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                      onPressed: () {
+                        Navigator.pop(sheetContext);
+
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (_) => InvoicePreviewScreen(
+                              invoiceId: invoice!['id'].toString(),
+                              invoiceNumber:
+                                  invoice['invoice_number'].toString(),
+                            ),
+                          ),
+                        );
+                      },
+                    ),
+                  ),
+
+                  if (invoice['status'] == 'cancelled')
+                    const Padding(
+                      padding: EdgeInsets.only(top: 10),
+                      child: Text(
+                        'This invoice has been cancelled.',
+                        style: TextStyle(
+                          color: Colors.redAccent,
+                          fontSize: 12,
+                        ),
+                      ),
+                    ),
+                ] else ...[
+                  const SizedBox(height: 18),
+                  const Text(
+                    'Your invoice will become available once your order is confirmed.',
+                    style: TextStyle(
+                      color: Colors.white54,
+                      fontSize: 12,
+                    ),
+                  ),
+                ],
+
+                const SizedBox(height: 20),
+              ],
+            ),
+          ),
+        ),
+      );
+    },
+  );
+}
+
 
   Widget _buildOrderCard(Map<String, dynamic> order) {
     final status = (order['status'] ?? 'pending').toString();

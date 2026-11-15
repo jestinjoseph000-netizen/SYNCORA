@@ -1,11 +1,14 @@
-
 import 'package:flutter/material.dart';
 
+import '../analytics/smart_reorder_screen.dart';
+import '../profile/profile_screen.dart';
+import '../../widgets/profile_avatar.dart';
 import '../../services/auth_service.dart';
 import '../../services/dashboard_service.dart';
 import '../products/product_management_screen.dart';
 import '../inventory/inventory_management_screen.dart';
 import '../orders/order_management_screen.dart';
+import '../analytics/product_forecast_screen.dart';
 
 class StaffDashboard extends StatefulWidget {
   const StaffDashboard({super.key});
@@ -38,8 +41,7 @@ class _StaffDashboardState extends State<StaffDashboard> {
     });
 
     try {
-      final summary =
-          await _dashboardService.getDashboardSummary();
+      final summary = await _dashboardService.getDashboardSummary();
 
       if (!mounted) return;
 
@@ -61,11 +63,7 @@ class _StaffDashboardState extends State<StaffDashboard> {
     await AuthService().signOut();
   }
 
-  Widget _buildStatCard(
-    String title,
-    String value,
-    IconData icon,
-  ) {
+  Widget _buildStatCard(String title, String value, IconData icon) {
     return Container(
       padding: const EdgeInsets.all(18),
       decoration: BoxDecoration(
@@ -89,10 +87,7 @@ class _StaffDashboardState extends State<StaffDashboard> {
           const SizedBox(height: 5),
           Text(
             title,
-            style: const TextStyle(
-              color: Colors.white60,
-              fontSize: 12,
-            ),
+            style: const TextStyle(color: Colors.white60, fontSize: 12),
           ),
         ],
       ),
@@ -141,19 +136,12 @@ class _StaffDashboardState extends State<StaffDashboard> {
                   const SizedBox(height: 5),
                   Text(
                     description,
-                    style: const TextStyle(
-                      color: Colors.white54,
-                      fontSize: 12,
-                    ),
+                    style: const TextStyle(color: Colors.white54, fontSize: 12),
                   ),
                 ],
               ),
             ),
-            const Icon(
-              Icons.arrow_forward_ios,
-              color: _accent,
-              size: 15,
-            ),
+            const Icon(Icons.arrow_forward_ios, color: _accent, size: 15),
           ],
         ),
       ),
@@ -171,13 +159,25 @@ class _StaffDashboardState extends State<StaffDashboard> {
           children: [
             Icon(Icons.all_inclusive, color: _accent),
             SizedBox(width: 10),
-            Text(
-              'SYNCORA',
-              style: TextStyle(fontWeight: FontWeight.bold),
-            ),
+            Text('SYNCORA', style: TextStyle(fontWeight: FontWeight.bold)),
           ],
         ),
         actions: [
+          Tooltip(
+            message: 'My Profile',
+            child: Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 8),
+              child: ProfileAvatar(
+                radius: 16,
+                onTap: () {
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(builder: (_) => const ProfileScreen()),
+                  );
+                },
+              ),
+            ),
+          ),
           IconButton(
             tooltip: 'Refresh',
             onPressed: _isLoading ? null : _loadDashboard,
@@ -222,9 +222,7 @@ class _StaffDashboardState extends State<StaffDashboard> {
                     const Center(
                       child: Padding(
                         padding: EdgeInsets.all(30),
-                        child: CircularProgressIndicator(
-                          color: _accent,
-                        ),
+                        child: CircularProgressIndicator(color: _accent),
                       ),
                     )
                   else if (_error != null)
@@ -244,9 +242,7 @@ class _StaffDashboardState extends State<StaffDashboard> {
                           const SizedBox(height: 10),
                           Text(
                             _error!,
-                            style: const TextStyle(
-                              color: Colors.white70,
-                            ),
+                            style: const TextStyle(color: Colors.white70),
                             textAlign: TextAlign.center,
                           ),
                           TextButton(
@@ -261,10 +257,9 @@ class _StaffDashboardState extends State<StaffDashboard> {
                     )
                   else
                     GridView.count(
-                      crossAxisCount:
-                          MediaQuery.of(context).size.width > 700
-                              ? 4
-                              : 2,
+                      crossAxisCount: MediaQuery.of(context).size.width > 700
+                          ? 4
+                          : 2,
                       shrinkWrap: true,
                       physics: const NeverScrollableScrollPhysics(),
                       crossAxisSpacing: 14,
@@ -315,8 +310,7 @@ class _StaffDashboardState extends State<StaffDashboard> {
                       Navigator.push(
                         context,
                         MaterialPageRoute(
-                          builder: (_) =>
-                              const ProductManagementScreen(),
+                          builder: (_) => const ProductManagementScreen(),
                         ),
                       );
                     },
@@ -332,8 +326,7 @@ class _StaffDashboardState extends State<StaffDashboard> {
                       Navigator.push(
                         context,
                         MaterialPageRoute(
-                          builder: (_) =>
-                              const InventoryManagementScreen(),
+                          builder: (_) => const InventoryManagementScreen(),
                         ),
                       );
                     },
@@ -349,8 +342,38 @@ class _StaffDashboardState extends State<StaffDashboard> {
                       Navigator.push(
                         context,
                         MaterialPageRoute(
-                          builder: (_) =>
-                              const OrderManagementScreen(),
+                          builder: (_) => const OrderManagementScreen(),
+                        ),
+                      );
+                    },
+                  ),
+                  const SizedBox(height: 12),
+
+                  _buildActionCard(
+                    title: 'Product Performance',
+                    description:
+                        'Analyse sales trends and estimate product demand',
+                    icon: Icons.analytics_outlined,
+                    onTap: () {
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (_) => const ProductForecastScreen(),
+                        ),
+                      );
+                    },
+                  ),
+                  const SizedBox(height: 12),
+                  _buildActionCard(
+                    title: 'Smart Reorder Assistant',
+                    description:
+                        'Review stock risks and reorder recommendations',
+                    icon: Icons.shopping_basket_outlined,
+                    onTap: () {
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (_) => const SmartReorderScreen(),
                         ),
                       );
                     },

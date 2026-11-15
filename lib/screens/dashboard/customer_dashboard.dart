@@ -1,8 +1,11 @@
 import 'package:flutter/material.dart';
 
+import '../profile/profile_screen.dart';
+import '../../widgets/profile_avatar.dart';
 import '../../services/auth_service.dart';
 
 import 'package:supabase_flutter/supabase_flutter.dart';
+
 import '../orders/customer_orders_screen.dart';
 import '../customers/customer_catalogue_screen.dart';
 
@@ -48,6 +51,21 @@ class CustomerDashboard extends StatelessWidget {
           ],
         ),
         actions: [
+          Tooltip(
+            message: 'My Profile',
+            child: Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 8),
+              child: ProfileAvatar(
+                radius: 16,
+                onTap: () {
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(builder: (_) => const ProfileScreen()),
+                  );
+                },
+              ),
+            ),
+          ),
           IconButton(
             tooltip: 'Logout',
             onPressed: () async {
@@ -134,7 +152,7 @@ class CustomerDashboard extends StatelessWidget {
                     ],
                   ),
                 ),
-                 
+
                 const SizedBox(height: 20),
 
                 // Browse Products button
@@ -194,7 +212,6 @@ class CustomerDashboard extends StatelessWidget {
                     ),
                   ),
                 ),
-
               ],
             ),
           );

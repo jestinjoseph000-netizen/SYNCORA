@@ -1,8 +1,11 @@
 import 'package:flutter/material.dart';
+
 import '../services/dashboard_service.dart';
 
 class DailySalesChart extends StatefulWidget {
-  const DailySalesChart({super.key});
+  final int refreshToken;
+
+  const DailySalesChart({super.key, this.refreshToken = 0});
 
   @override
   State<DailySalesChart> createState() => _DailySalesChartState();
@@ -17,6 +20,15 @@ class _DailySalesChartState extends State<DailySalesChart> {
   void initState() {
     super.initState();
     _loadSales();
+  }
+
+  @override
+  void didUpdateWidget(covariant DailySalesChart oldWidget) {
+    super.didUpdateWidget(oldWidget);
+
+    if (oldWidget.refreshToken != widget.refreshToken) {
+      _loadSales();
+    }
   }
 
   void _loadSales() {
@@ -35,9 +47,7 @@ class _DailySalesChartState extends State<DailySalesChart> {
       decoration: BoxDecoration(
         color: const Color(0xFF111821),
         borderRadius: BorderRadius.circular(18),
-        border: Border.all(
-          color: Colors.white.withValues(alpha: 0.07),
-        ),
+        border: Border.all(color: Colors.white.withValues(alpha: 0.07)),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -59,20 +69,14 @@ class _DailySalesChartState extends State<DailySalesChart> {
                     SizedBox(height: 5),
                     Text(
                       'Sales performance · Last 7 days',
-                      style: TextStyle(
-                        fontSize: 12,
-                        color: Colors.white54,
-                      ),
+                      style: TextStyle(fontSize: 12, color: Colors.white54),
                     ),
                   ],
                 ),
               ),
               IconButton(
                 onPressed: _refresh,
-                icon: const Icon(
-                  Icons.refresh,
-                  color: Color(0xFF00D68F),
-                ),
+                icon: const Icon(Icons.refresh, color: Color(0xFF00D68F)),
               ),
             ],
           ),
@@ -85,9 +89,7 @@ class _DailySalesChartState extends State<DailySalesChart> {
                 return const SizedBox(
                   height: 180,
                   child: Center(
-                    child: CircularProgressIndicator(
-                      color: Color(0xFF00D68F),
-                    ),
+                    child: CircularProgressIndicator(color: Color(0xFF00D68F)),
                   ),
                 );
               }
@@ -122,18 +124,12 @@ class _DailySalesChartState extends State<DailySalesChart> {
                         SizedBox(height: 12),
                         Text(
                           'No sales data available yet',
-                          style: TextStyle(
-                            color: Colors.white70,
-                            fontSize: 14,
-                          ),
+                          style: TextStyle(color: Colors.white70, fontSize: 14),
                         ),
                         SizedBox(height: 5),
                         Text(
                           'Your sales chart will appear here.',
-                          style: TextStyle(
-                            color: Colors.white38,
-                            fontSize: 12,
-                          ),
+                          style: TextStyle(color: Colors.white38, fontSize: 12),
                         ),
                       ],
                     ),
@@ -144,12 +140,9 @@ class _DailySalesChartState extends State<DailySalesChart> {
               return Column(
                 children: [
                   ...sales.map((item) {
-                    final amount =
-                        (item['total_sales'] as num).toDouble();
+                    final amount = (item['total_sales'] as num).toDouble();
 
-                    final date = DateTime.parse(
-                      item['sale_date'].toString(),
-                    );
+                    final date = DateTime.parse(item['sale_date'].toString());
 
                     final orders = item['total_orders'];
 
@@ -157,8 +150,7 @@ class _DailySalesChartState extends State<DailySalesChart> {
                         .map((e) => (e['total_sales'] as num).toDouble())
                         .reduce((a, b) => a > b ? a : b);
 
-                    final percentage =
-                        maxSales > 0 ? amount / maxSales : 0.0;
+                    final percentage = maxSales > 0 ? amount / maxSales : 0.0;
 
                     return Padding(
                       padding: const EdgeInsets.only(bottom: 20),
@@ -166,8 +158,7 @@ class _DailySalesChartState extends State<DailySalesChart> {
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
                           Row(
-                            mainAxisAlignment:
-                                MainAxisAlignment.spaceBetween,
+                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
                             children: [
                               Text(
                                 '${date.day}/${date.month}',
@@ -193,8 +184,7 @@ class _DailySalesChartState extends State<DailySalesChart> {
                               value: percentage,
                               minHeight: 11,
                               backgroundColor: Colors.white10,
-                              valueColor:
-                                  const AlwaysStoppedAnimation(
+                              valueColor: const AlwaysStoppedAnimation(
                                 Color(0xFF00D68F),
                               ),
                             ),

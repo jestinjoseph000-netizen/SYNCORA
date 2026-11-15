@@ -1,10 +1,24 @@
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
+
 import 'dart:typed_data';
+
 import '../../services/product_service.dart';
+import 'barcode_scanner_screen.dart';
 
 class AddProductScreen extends StatefulWidget {
-  const AddProductScreen({super.key});
+  final String? initialBarcode;
+  final String? initialName;
+  final String? initialDescription;
+  final String? initialImageUrl;
+
+  const AddProductScreen({
+    super.key,
+    this.initialBarcode,
+    this.initialName,
+    this.initialDescription,
+    this.initialImageUrl,
+  });
   @override
   State<AddProductScreen> createState() => _AddProductScreenState();
 }
@@ -23,6 +37,7 @@ class _AddProductScreenState extends State<AddProductScreen> {
   List<Map<String, dynamic>> _categories = [];
   String _categoryId = '';
   XFile? _image;
+  String? _externalImageUrl;
   bool _loadingCategories = true;
   bool _saving = false;
   static const accent = Color(0xFF00D68F);
@@ -31,6 +46,13 @@ class _AddProductScreenState extends State<AddProductScreen> {
   @override
   void initState() {
     super.initState();
+
+    _name.text = widget.initialName ?? '';
+    _barcode.text = widget.initialBarcode ?? '';
+    _description.text = widget.initialDescription ?? '';
+
+    _externalImageUrl = widget.initialImageUrl;
+
     _loadCategories();
   }
 
@@ -76,6 +98,21 @@ class _AddProductScreenState extends State<AddProductScreen> {
     }
   }
 
+  Future<void> _scanBarcode() async {
+    final result = await Navigator.push<String>(
+      context,
+      MaterialPageRoute(builder: (context) => const BarcodeScannerScreen()),
+    );
+
+    if (!mounted || result == null || result.isEmpty) return;
+
+    setState(() {
+      _barcode.text = result;
+    });
+
+    _message('Barcode scanned successfully!');
+  }
+
   Future<void> _save() async {
     if (!_formKey.currentState!.validate()) return;
     setState(() => _saving = true);
@@ -90,6 +127,7 @@ class _AddProductScreenState extends State<AddProductScreen> {
         lowStockThreshold: int.parse(_threshold.text.trim()),
         categoryId: _categoryId.isEmpty ? null : _categoryId,
         imageFile: _image,
+        imageUrl: _image == null ? _externalImageUrl : null,
       );
       if (!mounted) return;
       _message('Product added successfully!');
@@ -212,6 +250,21 @@ class _AddProductScreenState extends State<AddProductScreen> {
                         ),
                       ),
               )
+            else if (_externalImageUrl != null && _externalImageUrl!.isNotEmpty)
+              ClipRRect(
+                borderRadius: BorderRadius.circular(10),
+                child: Image.network(
+                  _externalImageUrl!,
+                  height: 170,
+                  width: double.infinity,
+                  fit: BoxFit.contain,
+                  errorBuilder: (_, _, _) => const Icon(
+                    Icons.broken_image_outlined,
+                    color: Colors.white38,
+                    size: 50,
+                  ),
+                ),
+              )
             else
               const SizedBox(
                 height: 90,
@@ -227,7 +280,13 @@ class _AddProductScreenState extends State<AddProductScreen> {
             OutlinedButton.icon(
               onPressed: _pickImage,
               icon: const Icon(Icons.image_outlined),
-              label: Text(_image == null ? 'Choose Image' : 'Change Image'),
+              label: Text(
+                _image == null &&
+                        (_externalImageUrl == null ||
+                            _externalImageUrl!.isEmpty)
+                    ? 'Choose Image'
+                    : 'Change Image',
+              ),
               style: OutlinedButton.styleFrom(
                 foregroundColor: accent,
                 side: const BorderSide(color: accent),
@@ -319,7 +378,59 @@ class _AddProductScreenState extends State<AddProductScreen> {
                   const SizedBox(height: 18),
                   _field('SKU', _sku, Icons.qr_code, validator: _required),
                   const SizedBox(height: 18),
-                  _field('Barcode (optional)', _barcode, Icons.qr_code_scanner),
+                  Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      const Text(
+                        'Barcode (optional)',
+                        style: TextStyle(
+                          color: Colors.white70,
+                          fontSize: 13,
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                      const SizedBox(height: 9),
+                      Row(
+                        children: [
+                          Expanded(
+                            child: TextFormField(
+                              controller: _barcode,
+                              style: const TextStyle(color: Colors.white),
+                              decoration: _decoration(
+                                'Enter or scan barcode',
+                                Icons.qr_code_scanner,
+                              ),
+                            ),
+                          ),
+                          const SizedBox(width: 10),
+                          SizedBox(
+                            height: 55,
+                            child: ElevatedButton.icon(
+                              onPressed: _scanBarcode,
+                              style: ElevatedButton.styleFrom(
+                                backgroundColor: accent,
+                                foregroundColor: const Color(0xFF080B10),
+                                shape: RoundedRectangleBorder(
+                                  borderRadius: BorderRadius.circular(12),
+                                ),
+                                padding: const EdgeInsets.symmetric(
+                                  horizontal: 14,
+                                ),
+                              ),
+                              icon: const Icon(
+                                Icons.camera_alt_outlined,
+                                size: 19,
+                              ),
+                              label: const Text(
+                                'Scan',
+                                style: TextStyle(fontWeight: FontWeight.bold),
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ],
+                  ),
                   const SizedBox(height: 18),
                   _field(
                     'Description',
