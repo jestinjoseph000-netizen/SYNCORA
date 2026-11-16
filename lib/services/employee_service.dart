@@ -42,11 +42,57 @@ class EmployeeService {
       );
     }
   }
-  Future<List<Map<String, dynamic>>> getEmployees() async {
+
+  
+Future<List<Map<String, dynamic>>> getEmployees() async {
+  try {
+    final response = await _supabase.functions.invoke(
+      'list-employees',
+      method: HttpMethod.get,
+    );
+
+    if (response.status != 200) {
+      final message = response.data is Map
+          ? response.data['error']?.toString()
+          : null;
+
+      throw Exception(message ?? 'Unable to load employees.');
+    }
+
+    final data = Map<String, dynamic>.from(response.data);
+
+    final employees = List<Map<String, dynamic>>.from(
+      data['employees'] ?? [],
+    );
+
+    // Display Staff accounts only.
+    return employees.where((employee) {
+      return employee['role']?.toString().toLowerCase() == 'staff';
+    }).toList();
+
+  } on FunctionException catch (error) {
+    final details = error.details;
+
+    if (details is Map && details['error'] != null) {
+      throw Exception(details['error'].toString());
+    }
+
+    throw Exception(
+      error.reasonPhrase ?? 'Unable to load employees.',
+    );
+  }
+}
+
+
+  Future<void> deleteEmployee({
+    required String employeeId,
+  }) async {
     try {
       final response = await _supabase.functions.invoke(
-        'list-employees',
-        method: HttpMethod.get,
+        'delete-employee',
+        body: {
+          'employee_id': employeeId,
+        },
       );
 
       if (response.status != 200) {
@@ -54,14 +100,8 @@ class EmployeeService {
             ? response.data['error']?.toString()
             : null;
 
-        throw Exception(message ?? 'Unable to load employees.');
+        throw Exception(message ?? 'Unable to delete employee.');
       }
-
-      final data = Map<String, dynamic>.from(response.data);
-
-      return List<Map<String, dynamic>>.from(
-        data['employees'] ?? [],
-      );
     } on FunctionException catch (error) {
       final details = error.details;
 
@@ -70,7 +110,7 @@ class EmployeeService {
       }
 
       throw Exception(
-        error.reasonPhrase ?? 'Unable to load employees.',
+        error.reasonPhrase ?? 'Employee deletion failed.',
       );
     }
   }

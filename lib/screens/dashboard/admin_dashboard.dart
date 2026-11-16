@@ -1611,7 +1611,7 @@ class _AdminDashboardState extends State<AdminDashboard> {
                   ],
                 ),
               ),
-              if (trailing != null) trailing,
+              ?trailing,
             ],
           ),
           const SizedBox(height: 22),

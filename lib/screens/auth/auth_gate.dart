@@ -1,12 +1,10 @@
 
 import 'package:flutter/material.dart';
-import '../dashboard/customer_dashboard.dart';
-import '../dashboard/admin_dashboard.dart';
+
 import '../../services/auth_service.dart';
 import '../landing/landing_page.dart';
-import '../dashboard/manager_dashboard.dart';
+import '../dashboard/admin_dashboard.dart';
 import '../dashboard/staff_dashboard.dart';
-
 
 class AuthGate extends StatelessWidget {
   const AuthGate({super.key});
@@ -18,6 +16,17 @@ class AuthGate extends StatelessWidget {
     return StreamBuilder(
       stream: authService.currentAuthStateChanges,
       builder: (context, snapshot) {
+        if (snapshot.connectionState == ConnectionState.waiting) {
+          return const Scaffold(
+            backgroundColor: Color(0xFF090B10),
+            body: Center(
+              child: CircularProgressIndicator(
+                color: Color(0xFF00D68F),
+              ),
+            ),
+          );
+        }
+
         final user = snapshot.data?.session?.user ??
             authService.currentUser;
 
@@ -66,16 +75,23 @@ class RoleRedirect extends StatelessWidget {
 
         switch (snapshot.data) {
           case 'admin':
-          return const AdminDashboard();
-
-          case 'manager':
-            return const ManagerDashboard();
+            return const AdminDashboard();
 
           case 'staff':
             return const StaffDashboard();
 
+          case 'manager':
           case 'customer':
-             return const CustomerDashboard();
+            return const Scaffold(
+              backgroundColor: Color(0xFF090B10),
+              body: Center(
+                child: Text(
+                  'Your account does not have dashboard access.',
+                  textAlign: TextAlign.center,
+                  style: TextStyle(color: Colors.white),
+                ),
+              ),
+            );
 
           default:
             return const Scaffold(
@@ -89,45 +105,6 @@ class RoleRedirect extends StatelessWidget {
             );
         }
       },
-    );
-  }
-}
-
-class RolePlaceholder extends StatelessWidget {
-  final String role;
-
-  const RolePlaceholder({
-    super.key,
-    required this.role,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: const Color(0xFF090B10),
-      appBar: AppBar(
-        backgroundColor: const Color(0xFF151922),
-        title: const Text('SYNCORA'),
-        actions: [
-          IconButton(
-            tooltip: 'Logout',
-            icon: const Icon(Icons.logout),
-            onPressed: () async {
-              await AuthService().signOut();
-            },
-          ),
-        ],
-      ),
-      body: Center(
-        child: Text(
-          role,
-          style: const TextStyle(
-            color: Colors.white,
-            fontSize: 26,
-            fontWeight: FontWeight.bold,
-          ),
-        ),
-      ),
     );
   }
 }

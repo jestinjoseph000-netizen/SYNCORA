@@ -1,7 +1,7 @@
-
 import 'dart:math' as math;
 
 import 'package:flutter/material.dart';
+
 import '../../services/auth_service.dart';
 
 class AuthScreen extends StatefulWidget {
@@ -51,79 +51,77 @@ class _AuthScreenState extends State<AuthScreen>
     super.dispose();
   }
 
-  
-Future<void> handleAuth() async {
-  if (!_formKey.currentState!.validate()) return;
+  Future<void> handleAuth() async {
+    if (!_formKey.currentState!.validate()) return;
 
-  setState(() => isLoading = true);
+    setState(() => isLoading = true);
 
-  try {
-    if (isLogin) {
-      // ADMIN / CUSTOMER / STAFF / MANAGER LOGIN
-      await _authService.signIn(
-        email: _emailController.text.trim(),
-        password: _passwordController.text,
-      );
-
-      if (!mounted) return;
-
-      // Close the authentication screen.
-      Navigator.of(
-        context,
-        rootNavigator: true,
-      ).popUntil((route) => route.isFirst);
-
-    } else {
-      // CUSTOMER REGISTRATION
-      final response = await _authService.signUp(
-        fullName: _nameController.text.trim(),
-        email: _emailController.text.trim(),
-        phone: _phoneController.text.trim(),
-        password: _passwordController.text,
-      );
-
-      if (!mounted) return;
-
-      if (response.session == null) {
-        // Email confirmation is required.
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text(
-              'Registration successful! Please confirm your email before signing in.',
-            ),
-            backgroundColor: Color(0xFF137B58),
-          ),
+    try {
+      if (isLogin) {
+        // ADMIN / CUSTOMER / STAFF / MANAGER LOGIN
+        await _authService.signIn(
+          email: _emailController.text.trim(),
+          password: _passwordController.text,
         );
 
-        setState(() {
-          isLogin = true;
-          isLoading = false;
-        });
+        if (!mounted) return;
 
-        return;
+        // Close the authentication screen.
+        Navigator.of(
+          context,
+          rootNavigator: true,
+        ).popUntil((route) => route.isFirst);
+      } else {
+        // CUSTOMER REGISTRATION
+        final response = await _authService.signUp(
+          fullName: _nameController.text.trim(),
+          email: _emailController.text.trim(),
+          phone: _phoneController.text.trim(),
+          password: _passwordController.text,
+        );
+
+        if (!mounted) return;
+
+        if (response.session == null) {
+          // Email confirmation is required.
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text(
+                'Registration successful! Please confirm your email before signing in.',
+              ),
+              backgroundColor: Color(0xFF137B58),
+            ),
+          );
+
+          setState(() {
+            isLogin = true;
+            isLoading = false;
+          });
+
+          return;
+        }
+
+        // Registration created an active session.
+        Navigator.of(
+          context,
+          rootNavigator: true,
+        ).popUntil((route) => route.isFirst);
       }
+    } on Exception catch (error) {
+      if (!mounted) return;
 
-      // Registration created an active session.
-      Navigator.of(
-        context,
-        rootNavigator: true,
-      ).popUntil((route) => route.isFirst);
-    }
-  } on Exception catch (error) {
-    if (!mounted) return;
-
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text(error.toString()),
-        backgroundColor: Colors.redAccent,
-      ),
-    );
-  } finally {
-    if (mounted) {
-      setState(() => isLoading = false);
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(error.toString()),
+          backgroundColor: Colors.redAccent,
+        ),
+      );
+    } finally {
+      if (mounted) {
+        setState(() => isLoading = false);
+      }
     }
   }
-}
 
   Widget buildInput({
     required String label,
@@ -138,10 +136,7 @@ Future<void> handleAuth() async {
         controller: controller,
         obscureText: password && obscurePassword,
         keyboardType: keyboard,
-        style: const TextStyle(
-          color: Colors.white,
-          fontSize: 14,
-        ),
+        style: const TextStyle(color: Colors.white, fontSize: 14),
         cursorColor: accent,
         validator: (value) {
           if (value == null || value.trim().isEmpty) {
@@ -149,8 +144,7 @@ Future<void> handleAuth() async {
           }
 
           if (label == 'Email' &&
-              !RegExp(r'^[^@]+@[^@]+\.[^@]+$')
-                  .hasMatch(value.trim())) {
+              !RegExp(r'^[^@]+@[^@]+\.[^@]+$').hasMatch(value.trim())) {
             return 'Enter a valid email address';
           }
 
@@ -162,10 +156,7 @@ Future<void> handleAuth() async {
         },
         decoration: InputDecoration(
           labelText: label,
-          labelStyle: const TextStyle(
-            color: Colors.white54,
-            fontSize: 13,
-          ),
+          labelStyle: const TextStyle(color: Colors.white54, fontSize: 13),
           prefixIcon: Icon(
             icon,
             color: accent.withValues(alpha: 0.85),
@@ -195,28 +186,19 @@ Future<void> handleAuth() async {
           ),
           enabledBorder: OutlineInputBorder(
             borderRadius: BorderRadius.circular(12),
-            borderSide: BorderSide(
-              color: Colors.white.withValues(alpha: 0.08),
-            ),
+            borderSide: BorderSide(color: Colors.white.withValues(alpha: 0.08)),
           ),
           focusedBorder: OutlineInputBorder(
             borderRadius: BorderRadius.circular(12),
-            borderSide: const BorderSide(
-              color: accent,
-              width: 1.3,
-            ),
+            borderSide: const BorderSide(color: accent, width: 1.3),
           ),
           errorBorder: OutlineInputBorder(
             borderRadius: BorderRadius.circular(12),
-            borderSide: const BorderSide(
-              color: Colors.redAccent,
-            ),
+            borderSide: const BorderSide(color: Colors.redAccent),
           ),
           focusedErrorBorder: OutlineInputBorder(
             borderRadius: BorderRadius.circular(12),
-            borderSide: const BorderSide(
-              color: Colors.redAccent,
-            ),
+            borderSide: const BorderSide(color: Colors.redAccent),
           ),
         ),
       ),
@@ -234,9 +216,7 @@ Future<void> handleAuth() async {
               animation: _backgroundController,
               builder: (context, child) {
                 return CustomPaint(
-                  painter: _LoginBackgroundPainter(
-                    _backgroundController.value,
-                  ),
+                  painter: _LoginBackgroundPainter(_backgroundController.value),
                 );
               },
             ),
@@ -255,9 +235,7 @@ Future<void> handleAuth() async {
                         vertical: 35,
                       ),
                       child: ConstrainedBox(
-                        constraints: const BoxConstraints(
-                          maxWidth: 460,
-                        ),
+                        constraints: const BoxConstraints(maxWidth: 460),
                         child: _buildLoginCard(),
                       ),
                     ),
@@ -277,17 +255,10 @@ Future<void> handleAuth() async {
 
   Widget _buildTopBar() {
     return Padding(
-      padding: const EdgeInsets.symmetric(
-        horizontal: 28,
-        vertical: 18,
-      ),
+      padding: const EdgeInsets.symmetric(horizontal: 28, vertical: 18),
       child: Row(
         children: [
-          const Icon(
-            Icons.all_inclusive,
-            color: accent,
-            size: 30,
-          ),
+          const Icon(Icons.all_inclusive, color: accent, size: 30),
           const SizedBox(width: 10),
           const Text(
             'SYNCORA',
@@ -303,11 +274,7 @@ Future<void> handleAuth() async {
             onPressed: () {
               Navigator.pop(context);
             },
-            icon: const Icon(
-              Icons.arrow_back,
-              size: 17,
-              color: accent,
-            ),
+            icon: const Icon(Icons.arrow_back, size: 17, color: accent),
             label: const Text(
               'Back to Home',
               style: TextStyle(color: Colors.white70),
@@ -322,16 +289,11 @@ Future<void> handleAuth() async {
 
   Widget _buildLoginCard() {
     return Container(
-      padding: const EdgeInsets.symmetric(
-        horizontal: 32,
-        vertical: 38,
-      ),
+      padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 38),
       decoration: BoxDecoration(
         color: surface.withValues(alpha: 0.94),
         borderRadius: BorderRadius.circular(22),
-        border: Border.all(
-          color: accent.withValues(alpha: 0.18),
-        ),
+        border: Border.all(color: accent.withValues(alpha: 0.18)),
         boxShadow: [
           BoxShadow(
             color: accent.withValues(alpha: 0.07),
@@ -352,15 +314,9 @@ Future<void> handleAuth() async {
                 decoration: BoxDecoration(
                   color: accent.withValues(alpha: 0.10),
                   borderRadius: BorderRadius.circular(18),
-                  border: Border.all(
-                    color: accent.withValues(alpha: 0.25),
-                  ),
+                  border: Border.all(color: accent.withValues(alpha: 0.25)),
                 ),
-                child: const Icon(
-                  Icons.all_inclusive,
-                  color: accent,
-                  size: 36,
-                ),
+                child: const Icon(Icons.all_inclusive, color: accent, size: 36),
               ),
             ),
 
@@ -429,8 +385,7 @@ Future<void> handleAuth() async {
                 onPressed: isLoading ? null : handleAuth,
                 style: ElevatedButton.styleFrom(
                   backgroundColor: accent,
-                  disabledBackgroundColor:
-                      accent.withValues(alpha: 0.5),
+                  disabledBackgroundColor: accent.withValues(alpha: 0.5),
                   foregroundColor: Colors.black,
                   elevation: 0,
                   shape: RoundedRectangleBorder(
@@ -462,24 +417,17 @@ Future<void> handleAuth() async {
             Row(
               children: [
                 Expanded(
-                  child: Divider(
-                    color: Colors.white.withValues(alpha: 0.12),
-                  ),
+                  child: Divider(color: Colors.white.withValues(alpha: 0.12)),
                 ),
                 const Padding(
                   padding: EdgeInsets.symmetric(horizontal: 12),
                   child: Text(
                     'OR',
-                    style: TextStyle(
-                      color: Colors.white38,
-                      fontSize: 11,
-                    ),
+                    style: TextStyle(color: Colors.white38, fontSize: 11),
                   ),
                 ),
                 Expanded(
-                  child: Divider(
-                    color: Colors.white.withValues(alpha: 0.12),
-                  ),
+                  child: Divider(color: Colors.white.withValues(alpha: 0.12)),
                 ),
               ],
             ),
@@ -494,10 +442,7 @@ Future<void> handleAuth() async {
                     isLogin
                         ? "Don't have an account? "
                         : 'Already have an account? ',
-                    style: const TextStyle(
-                      color: Colors.white54,
-                      fontSize: 13,
-                    ),
+                    style: const TextStyle(color: Colors.white54, fontSize: 13),
                   ),
                   GestureDetector(
                     onTap: isLoading
@@ -556,61 +501,39 @@ class _LoginBackgroundPainter extends CustomPainter {
     final time = animationValue * math.pi * 2;
 
     final glowPaint = Paint()
-      ..maskFilter = const MaskFilter.blur(
-        BlurStyle.normal,
-        65,
-      );
+      ..maskFilter = const MaskFilter.blur(BlurStyle.normal, 65);
 
     final firstCenter = Offset(
       size.width * (0.2 + 0.08 * math.sin(time)),
       size.height * 0.25,
     );
 
-    glowPaint.color = const Color(0xFF00D68F)
-        .withValues(alpha: 0.10);
+    glowPaint.color = const Color(0xFF00D68F).withValues(alpha: 0.10);
 
-    canvas.drawCircle(
-      firstCenter,
-      size.width * 0.22,
-      glowPaint,
-    );
+    canvas.drawCircle(firstCenter, size.width * 0.22, glowPaint);
 
     final secondCenter = Offset(
       size.width * (0.8 + 0.06 * math.cos(time)),
       size.height * 0.75,
     );
 
-    glowPaint.color = const Color(0xFF008F75)
-        .withValues(alpha: 0.09);
+    glowPaint.color = const Color(0xFF008F75).withValues(alpha: 0.09);
 
-    canvas.drawCircle(
-      secondCenter,
-      size.width * 0.18,
-      glowPaint,
-    );
+    canvas.drawCircle(secondCenter, size.width * 0.18, glowPaint);
 
     final particlePaint = Paint()
-      ..color = const Color(0xFF00D68F)
-          .withValues(alpha: 0.22);
+      ..color = const Color(0xFF00D68F).withValues(alpha: 0.22);
 
     for (int i = 0; i < 35; i++) {
       final x = (i * 97.0) % size.width;
-      final y = (i * 61.0 +
-              animationValue * size.height * 0.35) %
-          size.height;
+      final y = (i * 61.0 + animationValue * size.height * 0.35) % size.height;
 
-      canvas.drawCircle(
-        Offset(x, y),
-        1.2,
-        particlePaint,
-      );
+      canvas.drawCircle(Offset(x, y), 1.2, particlePaint);
     }
   }
 
   @override
-  bool shouldRepaint(
-    covariant _LoginBackgroundPainter oldDelegate,
-  ) {
+  bool shouldRepaint(covariant _LoginBackgroundPainter oldDelegate) {
     return oldDelegate.animationValue != animationValue;
   }
 }
